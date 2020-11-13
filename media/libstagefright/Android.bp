@@ -141,6 +141,7 @@ cc_library_static {
         "-Werror",
         "-Wno-error=deprecated-declarations",
         "-Wall",
+        "-DMPEG2EXTRACTOR",
     ],
 
     sanitize: {
@@ -285,6 +286,7 @@ cc_library {
         "android.hardware.cas.native@1.0",
         "android.hardware.drm@1.0",
         "android.hardware.media.omx@1.0",
+
     ],
 
     static_libs: [
@@ -297,6 +299,7 @@ cc_library {
         "libogg",
         "libwebm",
         "libstagefright_id3",
+        "//vendor/amlogic/common:libmediavendor_default"
     ],
 
     header_libs:[

@@ -63,6 +63,8 @@
 #include "include/SecureBuffer.h"
 #include "include/SharedMemoryBuffer.h"
 #include <media/stagefright/omx/OMXUtils.h>
+#include <MediaVendorExt.h>
+
 
 namespace android {
 
@@ -575,7 +577,7 @@ ACodec::ACodec()
       mDescribeHDR10PlusInfoIndex((OMX_INDEXTYPE)0),
       mStateGeneration(0),
       mVendorExtensionsStatus(kExtensionsUnchecked) {
-    memset(&mLastHDRStaticInfo, 0, sizeof(mLastHDRStaticInfo));
+      memset(&mLastHDRStaticInfo, 0, sizeof(mLastHDRStaticInfo));
 
     mUninitializedState = new UninitializedState(this);
     mLoadedState = new LoadedState(this);
@@ -1691,7 +1693,7 @@ status_t ACodec::fillBuffer(BufferInfo *info) {
 
 status_t ACodec::setComponentRole(
         bool isEncoder, const char *mime) {
-    const char *role = GetComponentRole(isEncoder, mime);
+    const char *role = MediaVendorExt::imp()->getComponentRole(isEncoder, mime);
     if (role == NULL) {
         return BAD_VALUE;
     }
@@ -2067,7 +2069,7 @@ status_t ACodec::configureCodec(
                 requiresSwRenderer = true;
             }
 
-            if (mComponentName.startsWith("OMX.google.") || requiresSwRenderer) {
+            if ((mComponentName.startsWith("OMX.google.") ||  MediaVendorExt::imp()->isVendorSoftDecoder(mComponentName.c_str())) || requiresSwRenderer) {
                 usingSwRenderer = true;
                 haveNativeWindow = false;
                 (void)setPortMode(kPortIndexOutput, IOMX::kPortModePresetByteBuffer);
@@ -2304,6 +2306,11 @@ status_t ACodec::configureCodec(
             err = setupAC4Codec(encoder, numChannels, sampleRate);
         }
     }
+    if ( MediaVendorExt::imp()->isAudioExtendFormat(mime))
+        err = MediaVendorExt::imp()->setAudioExtendParameter(mime ,mOMXNode, msg);
+
+    if ( MediaVendorExt::imp()->isExtendFormat(mime))
+        err = MediaVendorExt::imp()->handleExtendParameter(mime ,mOMXNode, msg);
 
     if (err != OK) {
         return err;
@@ -3453,9 +3460,12 @@ status_t ACodec::setupVideoDecoder(
     status_t err = GetVideoCodingTypeFromMime(mime, &compressionFormat);
 
     if (err != OK) {
-        return err;
+        err = MediaVendorExt::imp()->getVideoCodingTypeFromMimeEx(mime, &compressionFormat);
     }
 
+    if (err != OK) {
+        return err;
+    }
     if (compressionFormat == OMX_VIDEO_CodingHEVC) {
         int32_t profile;
         if (msg->findInt32("profile", &profile)) {
@@ -5532,6 +5542,13 @@ status_t ACodec::getPortFormat(OMX_U32 portIndex, sp<AMessage> &notify) {
                 }
 
                 default:
+                    if ( MediaVendorExt::imp()->isAudioExtendCoding((int)audioDef->eEncoding)) {
+                        err =  MediaVendorExt::imp()->getAudioExtendParameter((int)audioDef->eEncoding,
+                        portIndex ,mOMXNode, notify);
+                        if (err != OK)
+                        return err;
+                        break;
+                    }
                     ALOGE("Unsupported audio coding: %s(%d)\n",
                             asString(audioDef->eEncoding), audioDef->eEncoding);
                     return BAD_TYPE;
@@ -8767,7 +8784,7 @@ void ACodec::FlushingState::changeStateIfWeOwnAllBuffers() {
 status_t ACodec::queryCapabilities(
         const char* owner, const char* name, const char* mime, bool isEncoder,
         MediaCodecInfo::CapabilitiesWriter* caps) {
-    const char *role = GetComponentRole(isEncoder, mime);
+    const char *role = MediaVendorExt::imp()->getComponentRole(isEncoder, mime);
     if (role == NULL) {
         return BAD_VALUE;
     }

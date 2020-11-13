@@ -1,3 +1,25 @@
+bootstrap_go_package {
+    name: "xmlparser",
+    pkgPath: "android/soong/xmlparser",
+    deps: [
+        "blueprint",
+        "blueprint-pathtools",
+        "soong",
+        "soong-android",
+        "soong-cc",
+        "soong-genrule",
+    ],
+    srcs: [
+        "XmlParser.go",
+    ],
+    pluginFor: ["soong_build"],
+}
+
+xmlparser_defaults {
+    name: "xmlparser_defaults",
+}
+
+
 cc_library_headers {
     name: "libstagefright_xmlparser_headers",
     export_include_dirs: ["include"],
@@ -6,6 +28,7 @@ cc_library_headers {
 
 cc_library_shared {
     name: "libstagefright_xmlparser",
+    defaults: ["xmlparser_defaults"],
     vendor_available: true,
     vndk: {
         enabled: true,

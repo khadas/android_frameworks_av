@@ -28,6 +28,8 @@ cc_test {
         "libcutils",
         "liblog",
         "libutils",
+        "libstagefright_omx",
+
     ],
 
     static_libs: [
@@ -37,6 +39,7 @@ cc_test {
         "libstagefright_foundation",
         "libstagefright_esds",
         "libogg",
+        "//vendor/amlogic/common:libmediavendor_default",
     ],
 
     include_dirs: [
