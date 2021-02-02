@@ -274,6 +274,85 @@ void AudioOutputDescriptor::log(const char* indent)
           indent, mId, mId, mSamplingRate, mFormat, mChannelMask);
 }
 
+/*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+/* Change-Id: Ia4120848f02c700d9b03a48e0b7122415eb63799 */
+bool AudioOutputDescriptor::updateGain(audio_devices_t device __unused,
+                                       float volumeDb __unused,
+                                       float minVolumeDb __unused,
+                                       float maxVolumeDb __unused)
+{
+    return false;
+}
+
+bool SwAudioOutputDescriptor::updateGain(audio_devices_t device,
+                                         float volumeDb,
+                                         float minVolumeDb,
+                                         float maxVolumeDb)
+{
+    if (mProfile == 0) {
+        ALOGE("Error: this SwAudioOutputDescriptor doesn't have valid mProfile!");
+        return false;
+    }
+
+    DeviceVector supportedDevices = mProfile->getSupportedDevices().getDevicesFromType(device);
+    sp<DeviceDescriptor> deviceDesc = NULL;
+    sp<AudioPort> audioPort = NULL;
+    for (size_t i = 0; i < supportedDevices.size(); i ++) {
+        deviceDesc = supportedDevices.itemAt(i);
+        if (deviceDesc->type() == device) {
+            audioPort = deviceDesc->asAudioPort();
+            break;
+        }
+        deviceDesc = NULL;
+    }
+
+    if (deviceDesc == NULL || audioPort == NULL) {
+        ALOGE("Error: failed to get device descriptor or audio port!");
+        return false;
+    }
+    const AudioGains &audioGains = audioPort->getGains();
+    if (audioGains.empty()) {
+        ALOGE("Error: audio gain collection is empty for current port");
+        return false;
+    }
+
+    int gainMinValueInMb = audioGains[0]->getMinValueInMb();
+    int gainMaxValueInMb = audioGains[0]->getMaxValueInMb();
+    int gainStepValueInMb = audioGains[0]->getStepValueInMb();
+
+
+    int gainValue = ((int)((volumeDb - minVolumeDb) * (gainMaxValueInMb - gainMinValueInMb)))
+        / (int)(maxVolumeDb - minVolumeDb) + gainMinValueInMb;
+    gainValue = (int)(((float)gainValue / gainStepValueInMb) * gainStepValueInMb);
+
+    std::max(gainMinValueInMb, std::min(gainValue, gainMaxValueInMb));
+    ALOGV("[%s:%d] gainMinValueInMb:%d, gainMaxValueInMb:%d, gainStepValueInMb:%d, gainValue:%d", __func__, __LINE__,
+        gainMinValueInMb, gainMaxValueInMb, gainStepValueInMb, gainValue);
+    struct audio_port_config newConfig;
+    struct audio_port_config backupConfig;
+    deviceDesc->toAudioPortConfig(&newConfig);
+    newConfig.config_mask = AUDIO_PORT_CONFIG_GAIN;
+    newConfig.type = AUDIO_PORT_TYPE_DEVICE;
+    newConfig.gain.values[0] = gainValue;
+    newConfig.gain.index = 0;
+    newConfig.gain.mode = AUDIO_GAIN_MODE_JOINT;
+    newConfig.ext.device.type = device;
+    status_t status = deviceDesc->applyAudioPortConfig(&newConfig, &backupConfig);
+
+    if (status != NO_ERROR) {
+        ALOGE("Error to apply new config, status = %d", status);
+        return false;
+    }
+    status = mClientInterface->setAudioPortConfig(&newConfig, 0);
+    if (status != NO_ERROR) {
+        deviceDesc->applyAudioPortConfig(&backupConfig);
+        ALOGE("Error to setAudioPortConfig, status = %d", status);
+        return false;
+    }
+    return true;
+}
+/*[Amlogic end]-----------------------------------------------------------*/
+
 // SwAudioOutputDescriptor implementation
 SwAudioOutputDescriptor::SwAudioOutputDescriptor(const sp<IOProfile>& profile,
                                                  AudioPolicyClientInterface *clientInterface)

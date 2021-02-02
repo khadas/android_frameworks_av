@@ -220,6 +220,26 @@ static inline audio_devices_t apm_extract_one_audio_device(
         // retain the device on the A2DP output as the other must not correspond to an active
         // selection if not the speaker.
         //  - HDMI-CEC system audio mode only output: give priority to available item in order.
+
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: Ic4905e878f8a1d8e3800cf97aa8f35da4be97d27 */
+        // The priority for A2DP > SCO > USB.
+        std::vector<audio_devices_t> a2dpDevices = android::Intersection(
+                deviceTypes, android::getAudioDeviceOutAllA2dpSet());
+        if (a2dpDevices.empty() == false) {
+            return a2dpDevices[0];
+        }
+        std::vector<audio_devices_t> scoDevices = android::Intersection(
+                deviceTypes, android::getAudioDeviceOutAllScoSet());
+        if (scoDevices.empty() == false) {
+            return scoDevices[0];
+        }
+        std::vector<audio_devices_t> usbDevices = android::Intersection(
+                deviceTypes, android::getAudioDeviceOutAllUsbSet());
+        if (usbDevices.empty() == false) {
+            return usbDevices[0];
+        }
+        /*[Amlogic end]----------------------------------------------------------*/
         if (deviceTypes.count(AUDIO_DEVICE_OUT_SPEAKER) != 0) {
             return AUDIO_DEVICE_OUT_SPEAKER;
         } else if (deviceTypes.count(AUDIO_DEVICE_OUT_SPEAKER_SAFE) != 0) {

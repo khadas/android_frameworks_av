@@ -306,6 +306,12 @@ public:
     DeviceVector mDevices; /**< current devices this output is routed to */
     wp<AudioPolicyMix> mPolicyMix;  // non NULL when used by a dynamic policy
 
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: Ia4120848f02c700d9b03a48e0b7122415eb63799 */
+    virtual bool updateGain(
+        audio_devices_t device, float volumeDb, float minVolumeDb, float maxVolumeDb);
+    /*[Amlogic end]----------------------------------------------------------*/
+
 protected:
     const sp<PolicyAudioPort> mPolicyAudioPort;
     AudioPolicyClientInterface * const mClientInterface;
@@ -402,6 +408,12 @@ public:
      * depending on the device type)
      */
     DeviceVector filterSupportedDevices(const DeviceVector &devices) const;
+
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: Ia4120848f02c700d9b03a48e0b7122415eb63799 */
+    bool updateGain(
+          audio_devices_t device, float volumeDb, float minVolumeDb, float maxVolumeDb);
+    /*[Amlogic end]----------------------------------------------------------*/
 
     const sp<IOProfile> mProfile;          // I/O profile this output derives from
     audio_io_handle_t mIoHandle;           // output handle

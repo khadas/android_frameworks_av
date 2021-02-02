@@ -395,6 +395,17 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
             (getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA) == AUDIO_POLICY_FORCE_SPEAKER)) {
             devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_SPEAKER);
         }
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: Ic4905e878f8a1d8e3800cf97aa8f35da4be97d27 */
+        if ((devices2.isEmpty()) &&
+            (getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA) == AUDIO_POLICY_FORCE_HDMI_ARC)) {
+            devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_HDMI_ARC);
+        }
+        if ((devices2.isEmpty()) &&
+            (getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA) == AUDIO_POLICY_FORCE_SPDIF)) {
+            devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_SPDIF);
+        }
+        /*[Amlogic end]----------------------------------------------------------*/
         if (devices2.isEmpty() && (getLastRemovableMediaDevices().size() > 0)) {
             if ((getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA) != AUDIO_POLICY_FORCE_NO_BT_A2DP) &&
                     outputs.isA2dpSupported()) {
@@ -431,12 +442,28 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
         // STRATEGY_ENFORCED_AUDIBLE, AUDIO_DEVICE_NONE otherwise
         devices.add(devices2);
 
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: Ic4905e878f8a1d8e3800cf97aa8f35da4be97d27 */
+        /*
         // If hdmi system audio mode is on, remove speaker out of output list.
         if ((strategy == STRATEGY_MEDIA) &&
             (getForceUse(AUDIO_POLICY_FORCE_FOR_HDMI_SYSTEM_AUDIO) ==
                 AUDIO_POLICY_FORCE_HDMI_SYSTEM_AUDIO_ENFORCED)) {
             devices.remove(devices.getDevicesFromType(AUDIO_DEVICE_OUT_SPEAKER));
         }
+        }*/
+        // ARC has a lower priority than A2DP, SCO, USB. Remove ARC when connected they.
+        std::vector<audio_devices_t> a2dpDevices = Intersection(
+                devices.types(), getAudioDeviceOutAllA2dpSet());
+        std::vector<audio_devices_t> scoDevices = Intersection(
+                devices.types(), getAudioDeviceOutAllScoSet());
+        std::vector<audio_devices_t> usbDevices = Intersection(
+                devices.types(), getAudioDeviceOutAllUsbSet());
+        bool hasBluetoothOrUsbDevices = !a2dpDevices.empty() || !scoDevices.empty() || !usbDevices.empty();
+        if ((strategy == STRATEGY_MEDIA) && hasBluetoothOrUsbDevices) {
+            devices.remove(devices.getDevicesFromType(AUDIO_DEVICE_OUT_HDMI_ARC));
+        }
+        /*[Amlogic end]----------------------------------------------------------*/
 
         // for STRATEGY_SONIFICATION:
         // if SPEAKER was selected, and SPEAKER_SAFE is available, use SPEAKER_SAFE instead
@@ -515,7 +542,11 @@ sp<DeviceDescriptor> Engine::getDeviceForInputSource(audio_source_t inputSource)
         }
         device = availableDevices.getFirstExistingDevice({
                 AUDIO_DEVICE_IN_WIRED_HEADSET, AUDIO_DEVICE_IN_USB_HEADSET,
-                AUDIO_DEVICE_IN_USB_DEVICE, AUDIO_DEVICE_IN_BUILTIN_MIC});
+                /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+                /* Change-Id: If40b3570059ef2df207e9116889fe9f1d8ce39ab */
+                AUDIO_DEVICE_IN_USB_DEVICE, AUDIO_DEVICE_IN_BLUETOOTH_BLE,
+                AUDIO_DEVICE_IN_BUILTIN_MIC});
+                /*[Amlogic end]----------------------------------------------------------*/
         break;
 
     case AUDIO_SOURCE_VOICE_COMMUNICATION:
@@ -541,7 +572,11 @@ sp<DeviceDescriptor> Engine::getDeviceForInputSource(audio_source_t inputSource)
         default:    // FORCE_NONE
             device = availableDevices.getFirstExistingDevice({
                     AUDIO_DEVICE_IN_WIRED_HEADSET, AUDIO_DEVICE_IN_USB_HEADSET,
-                    AUDIO_DEVICE_IN_USB_DEVICE, AUDIO_DEVICE_IN_BUILTIN_MIC});
+                    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+                    /* Change-Id: If40b3570059ef2df207e9116889fe9f1d8ce39ab */
+                    AUDIO_DEVICE_IN_USB_DEVICE, AUDIO_DEVICE_IN_BLUETOOTH_BLE,
+                    AUDIO_DEVICE_IN_BUILTIN_MIC});
+                    /*[Amlogic end]----------------------------------------------------------*/
             break;
 
         case AUDIO_POLICY_FORCE_SPEAKER:
@@ -553,13 +588,27 @@ sp<DeviceDescriptor> Engine::getDeviceForInputSource(audio_source_t inputSource)
 
     case AUDIO_SOURCE_VOICE_RECOGNITION:
     case AUDIO_SOURCE_UNPROCESSED:
-    case AUDIO_SOURCE_HOTWORD:
-        if (inputSource == AUDIO_SOURCE_HOTWORD) {
-            // We should not use primary output criteria for Hotword but rather limit
-            // to devices attached to the same HW module as the build in mic
-            LOG_ALWAYS_FATAL_IF(availablePrimaryDevices.isEmpty(), "Primary devices not found");
-            availableDevices = availablePrimaryDevices;
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: If40b3570059ef2df207e9116889fe9f1d8ce39ab */
+        if (getForceUse(AUDIO_POLICY_FORCE_FOR_RECORD) == AUDIO_POLICY_FORCE_BT_SCO) {
+            device = availableDevices.getDevice(
+                    AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET, String8(""), AUDIO_FORMAT_DEFAULT);
+            if (device != nullptr) break;
         }
+        // we need to make BLUETOOTH_BLE has higher priority than BUILTIN_MIC,
+        // because sometimes user want to do voice search by bt remote
+        // even if BUILDIN_MIC is available.
+        device = availableDevices.getFirstExistingDevice({
+                AUDIO_DEVICE_IN_WIRED_HEADSET, AUDIO_DEVICE_IN_USB_HEADSET,
+                AUDIO_DEVICE_IN_USB_DEVICE, AUDIO_DEVICE_IN_BLUETOOTH_BLE,
+                AUDIO_DEVICE_IN_BUILTIN_MIC});
+        break;
+    case AUDIO_SOURCE_HOTWORD:
+        // We should not use primary output criteria for Hotword but rather limit
+        // to devices attached to the same HW module as the build in mic
+        LOG_ALWAYS_FATAL_IF(availablePrimaryDevices.isEmpty(), "Primary devices not found");
+        availableDevices = availablePrimaryDevices;
+        /*[Amlogic end]----------------------------------------------------------*/
         if (getForceUse(AUDIO_POLICY_FORCE_FOR_RECORD) == AUDIO_POLICY_FORCE_BT_SCO) {
             device = availableDevices.getDevice(
                     AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET, String8(""), AUDIO_FORMAT_DEFAULT);
@@ -584,7 +633,11 @@ sp<DeviceDescriptor> Engine::getDeviceForInputSource(audio_source_t inputSource)
     case AUDIO_SOURCE_VOICE_PERFORMANCE:
         device = availableDevices.getFirstExistingDevice({
                 AUDIO_DEVICE_IN_WIRED_HEADSET, AUDIO_DEVICE_IN_USB_HEADSET,
-                AUDIO_DEVICE_IN_USB_DEVICE, AUDIO_DEVICE_IN_BUILTIN_MIC});
+                /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+                /* Change-Id: If40b3570059ef2df207e9116889fe9f1d8ce39ab */
+                AUDIO_DEVICE_IN_USB_DEVICE, AUDIO_DEVICE_IN_BLUETOOTH_BLE,
+                AUDIO_DEVICE_IN_BUILTIN_MIC});
+                /*[Amlogic end]----------------------------------------------------------*/
         break;
     case AUDIO_SOURCE_REMOTE_SUBMIX:
         device = availableDevices.getDevice(
