@@ -1682,6 +1682,9 @@ status_t convertMessageToMetaData(const sp<AMessage> &msg, sp<MetaData> &meta) {
     }
 
     convertMessageToMetaDataFromMappings(msg, meta);
+#if (!defined STAGEFRIGHT_PLAYER2) && (!defined MPEG2EXTRACTOR)
+    MediaVendorExt::imp()->convertMessageToMetaData(msg, meta);
+#endif
 
     int32_t systemId;
     if (msg->findInt32("ca-system-id", &systemId)) {
@@ -1997,10 +2000,6 @@ status_t convertMessageToMetaData(const sp<AMessage> &msg, sp<MetaData> &meta) {
         }
     }
     // XXX TODO add whatever other keys there are
-#if (!defined STAGEFRIGHT_PLAYER2) && (!defined MPEG2EXTRACTOR)
-    MediaVendorExt::imp()->convertMessageToMetaData(msg, meta);
-#endif
-
 #if 0
     ALOGI("converted %s to:", msg->debugString(0).c_str());
     meta->dumpToLog();
