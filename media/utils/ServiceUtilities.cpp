@@ -21,6 +21,7 @@
 #include <binder/IPCThreadState.h>
 #include <binder/IServiceManager.h>
 #include <binder/PermissionCache.h>
+
 #include "mediautils/ServiceUtilities.h"
 
 #include <iterator>
@@ -176,7 +177,7 @@ bool captureHotwordAllowed(const String16& opPackageName, pid_t pid, uid_t uid) 
 
 bool settingsAllowed() {
     // given this is a permission check, could this be isAudioServerOrRootUid()?
-    if (isAudioServerUid(IPCThreadState::self()->getCallingUid())) return true;
+    if (isAudioServerOrMediaServerUid(IPCThreadState::self()->getCallingUid())) return true;
     static const String16 sAudioSettings("android.permission.MODIFY_AUDIO_SETTINGS");
     // IMPORTANT: Use PermissionCache - not a runtime permission and may not change.
     bool ok = PermissionCache::checkCallingPermission(sAudioSettings);
