@@ -6155,7 +6155,7 @@ status_t AudioPolicyManager::checkAndSetVolume(IVolumeCurves &curves,
     /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
     /* Change-Id: Ia4120848f02c700d9b03a48e0b7122415eb63799 */
     /* Need adjust audio hal volume when television platform. */
-    if (property_get_bool("ro.vendor.platform.is.tv", false /* default_value */)) {
+    if (property_get_bool("ro.vendor.platform.has.tvuimode", false /* default_value */)) {
         DeviceTypeSet   curSrcDevicesVector = deviceTypesFromBitMask(getDevicesForStream(AUDIO_STREAM_MUSIC));
         audio_devices_t curDevice = Volume::getDeviceForVolume(curSrcDevicesVector);
         DeviceTypeSet   curDeviceVector = deviceTypesFromBitMask(curDevice);
