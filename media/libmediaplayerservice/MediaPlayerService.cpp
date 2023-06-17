@@ -2333,6 +2333,9 @@ status_t MediaPlayerService::AudioOutput::open(
     mMsecsPerFrame = 1E3f / (mPlaybackRate.mSpeed * sampleRate);
     mFrameSize = t->frameSize();
     mTrack = t;
+    // set to default value 0 for reuse audiotrack
+    mNumFramesPlayedHighBit = 0;
+    mLastNumFramesPlayed = 0;
 
     return updateTrack();
 }
