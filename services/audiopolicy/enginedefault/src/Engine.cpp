@@ -405,6 +405,16 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
             // no sonification on aux digital (e.g. HDMI)
             devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_AUX_DIGITAL);
         }
+        //priority Wired > a2dp > hdmi > hdmi 1 > spdif > spdif 1
+        if ((devices2.isEmpty()) && (strategy != STRATEGY_SONIFICATION)) {
+            devices2 = availableOutputDevices.getDevicesFromType(VX_ROCKCHIP_OUT_HDMI0);
+        }
+        if ((devices2.isEmpty()) && (strategy != STRATEGY_SONIFICATION)) {
+            devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_SPDIF);
+        }
+        if ((devices2.isEmpty()) && (strategy != STRATEGY_SONIFICATION)) {
+            devices2 = availableOutputDevices.getDevicesFromType(VX_ROCKCHIP_OUT_SPDIF0);
+        }
         if ((devices2.isEmpty()) &&
                 (getForceUse(AUDIO_POLICY_FORCE_FOR_DOCK) == AUDIO_POLICY_FORCE_ANALOG_DOCK)) {
             devices2 = availableOutputDevices.getDevicesFromType(

@@ -753,6 +753,12 @@ status_t AudioFlinger::removeEffectFromHal(audio_port_handle_t deviceId,
 
 static const char * const audio_interfaces[] = {
     AUDIO_HARDWARE_MODULE_ID_PRIMARY,
+#if SUPPORT_MULTIAUDIO
+    AUDIO_HARDWARE_MODULE_ID_EXT_1,
+    AUDIO_HARDWARE_MODULE_ID_EXT_2,
+    AUDIO_HARDWARE_MODULE_ID_EXT_3,
+    AUDIO_HARDWARE_MODULE_ID_EXT_4,
+#endif
     AUDIO_HARDWARE_MODULE_ID_A2DP,
     AUDIO_HARDWARE_MODULE_ID_USB,
 };

@@ -457,6 +457,16 @@ const detail::AudioDevicePairs& getAudioDevicePairs() {
                         AudioDeviceType::OUT_BROADCAST,
                         GET_DEVICE_DESC_CONNECTION(BT_LE))
             },
+            {
+                VX_ROCKCHIP_OUT_HDMI0, make_AudioDeviceDescription(
+                        AudioDeviceType::OUT_DEVICE,
+                        "VX_ROCKCHIP_HDMI0")
+            },
+            {
+                VX_ROCKCHIP_OUT_SPDIF0, make_AudioDeviceDescription(
+                        AudioDeviceType::OUT_DEVICE,
+                        "VX_ROCKCHIP_SPDIF0")
+            },
             // AUDIO_DEVICE_IN_AMBIENT and IN_COMMUNICATION are removed since they were deprecated.
             {
                 AUDIO_DEVICE_IN_BUILTIN_MIC, make_AudioDeviceDescription(
@@ -482,6 +492,11 @@ const detail::AudioDevicePairs& getAudioDevicePairs() {
                 AUDIO_DEVICE_IN_BLUETOOTH_BLE, make_AudioDeviceDescription(
                         AudioDeviceType::IN_DEVICE,
                         GET_DEVICE_DESC_CONNECTION(BT_LE))
+            },
+            {
+                VX_ROCKCHIP_IN_HDMI0, make_AudioDeviceDescription(
+                        AudioDeviceType::IN_DEVICE,
+                        "VX_ROCKCHIP_HDMI0")
             },
             {
                 AUDIO_DEVICE_IN_ECHO_REFERENCE, make_AudioDeviceDescription(
