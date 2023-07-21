@@ -34,6 +34,10 @@
 #include <media/AudioContainers.h>
 #include <utils/String8.h>
 #include <utils/Log.h>
+/*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+/* Change-Id: Id7204729e7ed599af85fb820a417a699626606b0 */
+#include <cutils/properties.h>
+/*[Amlogic end]-----------------------------------------------------------*/
 
 namespace android::audio_policy {
 
@@ -56,6 +60,25 @@ static const std::vector<legacy_strategy_map>& getLegacyStrategy() {
     return legacyStrategy;
 }
 
+/*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+/* Change-Id: Id7204729e7ed599af85fb820a417a699626606b0 */
+enum audio_output_strategy {
+    OUTPUT_STRATEGY_AUTO            = 0,
+    OUTPUT_STRATEGY_SEMI_AUTO       = 1,
+    OUTPUT_STRATEGY_MANUAL          = 2,
+};
+static audio_output_strategy gAudioOutStrategy = OUTPUT_STRATEGY_AUTO;
+
+static void updateCurAudioOutStrategy()
+{
+    gAudioOutStrategy = (audio_output_strategy)property_get_int32("persist.vendor.media.audio.output.strategy", OUTPUT_STRATEGY_AUTO);
+    if (gAudioOutStrategy < OUTPUT_STRATEGY_AUTO || gAudioOutStrategy > OUTPUT_STRATEGY_MANUAL) {
+        gAudioOutStrategy = OUTPUT_STRATEGY_AUTO;
+        ALOGW("[%s:%d] audio output mode:%d invalid, set default AUTO.", __func__, __LINE__, gAudioOutStrategy);
+    }
+}
+/*[Amlogic end]-----------------------------------------------------------*/
+
 status_t Engine::loadFromHalConfigWithFallback(
         const media::audio::common::AudioHalEngineConfig& aidlConfig) {
     return loadWithFallback(aidlConfig);
@@ -76,6 +99,19 @@ status_t Engine::loadWithFallback(const T& configSource) {
     for (const auto &strategy : legacyStrategy) {
         mLegacyStrategyMap[getProductStrategyByName(strategy.name)] = strategy.id;
     }
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: Id7204729e7ed599af85fb820a417a699626606b0 */
+    updateCurAudioOutStrategy();
+    int mediaForceUse = EngineBase::getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA);
+    if (gAudioOutStrategy != OUTPUT_STRATEGY_AUTO) {
+        mediaForceUse = property_get_int32("persist.vendor.media.audio.forceuse", -1);
+        if (mediaForceUse == -1) {
+            mediaForceUse = AUDIO_POLICY_FORCE_SPEAKER;
+        }
+        EngineBase::setForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA, (audio_policy_forced_cfg_t)mediaForceUse);
+    }
+    ALOGI("[%s:%d] audio output strategy:%d, media forceuse:%d.", __func__, __LINE__, gAudioOutStrategy, mediaForceUse);
+    /*[Amlogic end]-----------------------------------------------------------*/
 
     return OK;
 }
@@ -96,10 +132,19 @@ status_t Engine::setForceUse(audio_policy_force_use_t usage, audio_policy_forced
             config != AUDIO_POLICY_FORCE_WIRED_ACCESSORY &&
             config != AUDIO_POLICY_FORCE_ANALOG_DOCK &&
             config != AUDIO_POLICY_FORCE_DIGITAL_DOCK && config != AUDIO_POLICY_FORCE_NONE &&
+            /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+            /* Change-Id: Id7204729e7ed599af85fb820a417a699626606b0 */
+            config != AUDIO_POLICY_FORCE_HDMI_ARC && config != AUDIO_POLICY_FORCE_SPDIF &&
+            config != AUDIO_POLICY_FORCE_SPEAKER_SPDIF && config != AUDIO_POLICY_FORCE_HDMI_OUT &&
+            /*[Amlogic end]-----------------------------------------------------------*/
             config != AUDIO_POLICY_FORCE_NO_BT_A2DP && config != AUDIO_POLICY_FORCE_SPEAKER ) {
             ALOGW("setForceUse() invalid config %d for MEDIA", config);
             return BAD_VALUE;
         }
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: Id7204729e7ed599af85fb820a417a699626606b0 */
+        updateCurAudioOutStrategy();
+        /*[Amlogic end]-----------------------------------------------------------*/
         break;
     case AUDIO_POLICY_FORCE_FOR_RECORD:
         if (config != AUDIO_POLICY_FORCE_BT_SCO && config != AUDIO_POLICY_FORCE_WIRED_ACCESSORY &&
@@ -369,12 +414,8 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
                 devices2.add(remoteSubmix);
             }
         }
-
-        if ((devices2.isEmpty()) &&
-            (getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA) == AUDIO_POLICY_FORCE_SPEAKER)) {
-            devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_SPEAKER);
-        }
-
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: Id7204729e7ed599af85fb820a417a699626606b0 */
         // LE audio broadcast device is only used if:
         // - No call is active
         // - either MEDIA or SONIFICATION_RESPECTFUL is the highest priority active strategy
@@ -398,50 +439,84 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
             }
         }
 
-        if (devices2.isEmpty() && (getLastRemovableMediaDevices().size() > 0)) {
-            if ((getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA) != AUDIO_POLICY_FORCE_NO_BT_A2DP)) {
-                // Get the last connected device of wired and bluetooth a2dp
-                devices2 = availableOutputDevices.getFirstDevicesFromTypes(
-                        getLastRemovableMediaDevices());
-            } else {
-                // Get the last connected device of wired except bluetooth a2dp
-                devices2 = availableOutputDevices.getFirstDevicesFromTypes(
-                        getLastRemovableMediaDevices(GROUP_WIRED));
+        if (devices2.isEmpty()) {
+            if (getLastRemovableMediaDevices().size() > 0) {
+                if (gAudioOutStrategy == OUTPUT_STRATEGY_AUTO || gAudioOutStrategy == OUTPUT_STRATEGY_SEMI_AUTO) {
+            #if 1 /* 1. BT = USB = wired device(HEADPHONES,lineout...). Select the last device that was inserted. */
+                    devices2 = availableOutputDevices.getFirstDevicesFromTypes(getLastRemovableMediaDevices());
+            #else /* 2. A2DP > USB */
+                    devices2 = availableOutputDevices.getFirstDevicesFromTypes({
+                            AUDIO_DEVICE_OUT_BLUETOOTH_A2DP, AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES,
+                            AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER,
+                            AUDIO_DEVICE_OUT_USB_HEADSET, AUDIO_DEVICE_OUT_USB_DEVICE,
+                            AUDIO_DEVICE_OUT_USB_ACCESSORY});
+            #endif
+                }
             }
         }
-        if ((devices2.isEmpty()) && (strategy != STRATEGY_SONIFICATION)) {
-            // no sonification on aux digital (e.g. HDMI)
-            devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_AUX_DIGITAL);
+
+        audio_policy_forced_cfg_t forceMedia = getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA);
+        if (devices2.isEmpty()) {
+            switch (forceMedia) {
+                case AUDIO_POLICY_FORCE_HDMI_ARC:
+                    devices2 = availableOutputDevices.getFirstDevicesFromTypes({
+                            AUDIO_DEVICE_OUT_HDMI_EARC, AUDIO_DEVICE_OUT_HDMI_ARC});
+                    break;
+                case AUDIO_POLICY_FORCE_SPEAKER:
+                case AUDIO_POLICY_FORCE_SPEAKER_SPDIF:
+                    devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_SPEAKER);
+                    break;
+                case AUDIO_POLICY_FORCE_SPDIF:
+                    devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_SPDIF);
+                    break;
+                case AUDIO_POLICY_FORCE_HDMI_OUT:
+                    devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_AUX_DIGITAL);
+                    break;
+                case AUDIO_POLICY_FORCE_HEADPHONES:
+                    devices2 = availableOutputDevices.getFirstDevicesFromTypes({
+                            AUDIO_DEVICE_OUT_WIRED_HEADPHONE, AUDIO_DEVICE_OUT_WIRED_HEADSET});
+                    break;
+                case AUDIO_POLICY_FORCE_BT_A2DP:
+                    devices2 = availableOutputDevices.getFirstDevicesFromTypes({
+                            AUDIO_DEVICE_OUT_BLUETOOTH_A2DP, AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES,
+                            AUDIO_DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER});
+                    break;
+                case AUDIO_POLICY_FORCE_WIRED_ACCESSORY:
+                    devices2 = availableOutputDevices.getFirstDevicesFromTypes({
+                            AUDIO_DEVICE_OUT_USB_HEADSET, AUDIO_DEVICE_OUT_USB_DEVICE,
+                            AUDIO_DEVICE_OUT_USB_ACCESSORY});
+                    break;
+                default:
+                    break;
+            }
         }
+
         if ((devices2.isEmpty()) &&
                 (getForceUse(AUDIO_POLICY_FORCE_FOR_DOCK) == AUDIO_POLICY_FORCE_ANALOG_DOCK)) {
             devices2 = availableOutputDevices.getDevicesFromType(
                     AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET);
         }
-        if (devices2.isEmpty()) {
-            devices2 = availableOutputDevices.getFirstDevicesFromTypes({
-                        AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET, AUDIO_DEVICE_OUT_SPEAKER});
-        }
-        DeviceVector devices3;
-        if (strategy == STRATEGY_MEDIA) {
-            // ARC, SPDIF and AUX_LINE can co-exist with others.
-            devices3 = availableOutputDevices.getDevicesFromTypes({
-                    AUDIO_DEVICE_OUT_HDMI_ARC, AUDIO_DEVICE_OUT_HDMI_EARC,
-                    AUDIO_DEVICE_OUT_SPDIF, AUDIO_DEVICE_OUT_AUX_LINE,
-                    });
+
+        if (devices2.isEmpty() && gAudioOutStrategy == OUTPUT_STRATEGY_AUTO) {
+            if (getLastRemovableMediaDevices(GROUP_WIRED).size() > 0) {
+                /* The wired device has a low priority than forced device. (This mode is used in A2DP > USB scenarios) */
+                devices2 = availableOutputDevices.getFirstDevicesFromTypes(getLastRemovableMediaDevices(GROUP_WIRED));
+            } else {
+                devices2 = availableOutputDevices.getFirstDevicesFromTypes({
+                        AUDIO_DEVICE_OUT_WIRED_HEADPHONE, AUDIO_DEVICE_OUT_WIRED_HEADSET, AUDIO_DEVICE_OUT_HDMI_EARC,
+                        AUDIO_DEVICE_OUT_HDMI_ARC, AUDIO_DEVICE_OUT_AUX_DIGITAL, AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET,
+                        AUDIO_DEVICE_OUT_SPEAKER, AUDIO_DEVICE_OUT_SPDIF});
+            }
         }
 
-        devices2.add(devices3);
+        if (devices2.isEmpty() && gAudioOutStrategy != OUTPUT_STRATEGY_AUTO) {
+            devices2 = availableOutputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_FM);
+        }
+
         // device is DEVICE_OUT_SPEAKER if we come from case STRATEGY_SONIFICATION or
         // STRATEGY_ENFORCED_AUDIBLE, AUDIO_DEVICE_NONE otherwise
         devices.add(devices2);
-
-        // If hdmi system audio mode is on, remove speaker out of output list.
-        if ((strategy == STRATEGY_MEDIA) &&
-            (getForceUse(AUDIO_POLICY_FORCE_FOR_HDMI_SYSTEM_AUDIO) ==
-                AUDIO_POLICY_FORCE_HDMI_SYSTEM_AUDIO_ENFORCED)) {
-            devices.remove(devices.getDevicesFromType(AUDIO_DEVICE_OUT_SPEAKER));
-        }
+        /*[Amlogic end]-----------------------------------------------------------*/
 
         bool mediaActiveLocally =
                 outputs.isActiveLocally(toVolumeSource(AUDIO_STREAM_MUSIC),

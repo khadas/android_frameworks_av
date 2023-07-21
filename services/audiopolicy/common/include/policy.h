@@ -224,18 +224,39 @@ static inline audio_devices_t apm_extract_one_audio_device(
         // retain the device on the A2DP output as the other must not correspond to an active
         // selection if not the speaker.
         //  - HDMI-CEC system audio mode only output: give priority to available item in order.
-        if (deviceTypes.count(AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET) != 0) {
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: I47267f5372b9ea736f2bb902dd6baa0727e5ddce */
+        // The priority for A2DP > SCO > USB.
+        std::vector<audio_devices_t> a2dpDevices = android::Intersection(
+                deviceTypes, android::getAudioDeviceOutAllA2dpSet());
+        if (a2dpDevices.empty() == false) {
+            return a2dpDevices[0];
+        }
+        std::vector<audio_devices_t> scoDevices = android::Intersection(
+                deviceTypes, android::getAudioDeviceOutAllScoSet());
+        if (scoDevices.empty() == false) {
+            return scoDevices[0];
+        }
+        std::vector<audio_devices_t> usbDevices = android::Intersection(
+                deviceTypes, android::getAudioDeviceOutAllUsbSet());
+        if (usbDevices.empty() == false) {
+            return usbDevices[0];
+        }
+        if (deviceTypes.count(AUDIO_DEVICE_OUT_WIRED_HEADPHONE) != 0) {
+            return AUDIO_DEVICE_OUT_WIRED_HEADPHONE;
+        } else if (deviceTypes.count(AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET) != 0) {
             return AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET;
-        } else if (deviceTypes.count(AUDIO_DEVICE_OUT_SPEAKER) != 0) {
-            return AUDIO_DEVICE_OUT_SPEAKER;
-        } else if (deviceTypes.count(AUDIO_DEVICE_OUT_SPEAKER_SAFE) != 0) {
-            return AUDIO_DEVICE_OUT_SPEAKER_SAFE;
         } else if (deviceTypes.count(AUDIO_DEVICE_OUT_HDMI_ARC) != 0) {
             return AUDIO_DEVICE_OUT_HDMI_ARC;
         } else if (deviceTypes.count(AUDIO_DEVICE_OUT_HDMI_EARC) != 0) {
             return AUDIO_DEVICE_OUT_HDMI_EARC;
         } else if (deviceTypes.count(AUDIO_DEVICE_OUT_AUX_LINE) != 0) {
             return AUDIO_DEVICE_OUT_AUX_LINE;
+        } else if (deviceTypes.count(AUDIO_DEVICE_OUT_SPEAKER) != 0) {
+            return AUDIO_DEVICE_OUT_SPEAKER;
+        } else if (deviceTypes.count(AUDIO_DEVICE_OUT_SPEAKER_SAFE) != 0) {
+            return AUDIO_DEVICE_OUT_SPEAKER_SAFE;
+        /*[Amlogic end]----------------------------------------------------------*/
         } else if (deviceTypes.count(AUDIO_DEVICE_OUT_SPDIF) != 0) {
             return AUDIO_DEVICE_OUT_SPDIF;
         } else {

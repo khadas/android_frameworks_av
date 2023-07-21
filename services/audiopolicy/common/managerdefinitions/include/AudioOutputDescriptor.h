@@ -329,6 +329,12 @@ public:
 
     virtual uint32_t getRecommendedMuteDurationMs() const { return 0; }
 
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: I47267f5372b9ea736f2bb902dd6baa0727e5ddce */
+    virtual bool updateGain(
+        audio_devices_t device, float volumeDb, float minVolumeDb, float maxVolumeDb);
+    /*[Amlogic end]----------------------------------------------------------*/
+
 protected:
     const sp<PolicyAudioPort> mPolicyAudioPort;
     AudioPolicyClientInterface * const mClientInterface;
@@ -466,6 +472,12 @@ public:
     uint32_t getRecommendedMuteDurationMs() const override;
 
     void setTracksInvalidatedStatusByStrategy(product_strategy_t strategy);
+
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: I47267f5372b9ea736f2bb902dd6baa0727e5ddce */
+    bool updateGain(
+          audio_devices_t device, float volumeDb, float minVolumeDb, float maxVolumeDb);
+    /*[Amlogic end]----------------------------------------------------------*/
 
     bool isConfigurationMatched(const audio_config_base_t& config, audio_output_flags_t flags);
 

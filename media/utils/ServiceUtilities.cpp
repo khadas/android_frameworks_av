@@ -254,7 +254,11 @@ bool captureHotwordAllowed(const AttributionSourceState& attributionSource) {
 
 bool settingsAllowed() {
     // given this is a permission check, could this be isAudioServerOrRootUid()?
-    if (isAudioServerUid(IPCThreadState::self()->getCallingUid())) return true;
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* I9e3e59263020c00c6abcd10a5d89208a6fa85625 */
+    /* SWPL-45958: ignore MODIFY_AUDIO_SETTINGS detection during boot startup */
+    if (isAudioServerOrMediaServerUid(IPCThreadState::self()->getCallingUid())) return true;
+    /*[Amlogic end]-----------------------------------------------------------*/
     static const String16 sAudioSettings("android.permission.MODIFY_AUDIO_SETTINGS");
     // IMPORTANT: Use PermissionCache - not a runtime permission and may not change.
     bool ok = PermissionCache::checkCallingPermission(sAudioSettings);

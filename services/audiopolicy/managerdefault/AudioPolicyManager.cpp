@@ -7841,6 +7841,59 @@ status_t AudioPolicyManager::checkAndSetVolume(IVolumeCurves &curves,
                     isSingleDeviceType(deviceTypes, audio_is_bluetooth_out_sco_device))) {
         volumeDb = 0.0f;
     }
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: I47267f5372b9ea736f2bb902dd6baa0727e5ddce */
+    /* Need adjust audio hal volume when television platform. */
+    if (property_get_bool("ro.vendor.platform.has.tvuimode", false /* default_value */)) {
+        DeviceTypeSet curSrcDevicesVector = mEngine->getOutputDevicesForStream(AUDIO_STREAM_MUSIC, false).types();
+        audio_devices_t curDevice = Volume::getDeviceForVolume(curSrcDevicesVector);
+        DeviceTypeSet   curDeviceVector {curDevice};
+        audio_devices_t outputDescDevices = deviceTypesToBitMask(outputDesc->devices().types());
+        bool            bootVideoRunning = property_get_int32("service.bootvideo.exit", 0) == 1;
+
+        if ((curDevice & outputDescDevices) != 0 && (
+            curDevice == AUDIO_DEVICE_OUT_SPEAKER ||
+            curDevice == AUDIO_DEVICE_OUT_WIRED_HEADPHONE ||
+            curDevice == AUDIO_DEVICE_OUT_SPDIF)) {
+            //ignoring the "index" passed as argument and always use MUSIC stream index
+            //for all stream types works on TV because all stream types are aliases of MUSIC.
+            device_category devCategory = Volume::getDeviceCategory(curDeviceVector);
+
+            auto &volCurves = getVolumeCurves(AUDIO_STREAM_MUSIC);
+            int volumeIndex = volCurves.getVolumeIndex(curDeviceVector);
+            int volumeMaxIndex = volCurves.getVolumeIndexMax();
+            int volumeMinIndex = volCurves.getVolumeIndexMin();
+
+            float musicVolumeDb = volCurves.volIndexToDb(devCategory, volumeIndex);
+            float maxMusicVolumeDb = volCurves.volIndexToDb(devCategory, volumeMaxIndex);
+            float minMusicVolumeDb = volCurves.volIndexToDb(devCategory, volumeMinIndex);
+            ALOGV("[%s:%d] volumeDb:%f volume:%d, min:%d, max:%d, curDevice:%#x, devCategory:%d, outputDescDevices:%#x",
+                __func__, __LINE__, volumeDb, volumeIndex, volumeMinIndex, volumeMaxIndex, curDevice, devCategory, outputDescDevices);
+            ALOGV("[%s:%d] musicVolumeDb:%f, minMusicVolumeDb:%f, maxMusicVolumeDb:%f, bootVideoRunning:%d",
+                __func__, __LINE__, musicVolumeDb, minMusicVolumeDb, maxMusicVolumeDb, bootVideoRunning);
+            if (bootVideoRunning) {
+                volumeDb = 0.0f;
+                maxMusicVolumeDb = 0.0f;
+                minMusicVolumeDb = -100000.0f;
+                musicVolumeDb = -1837.0f;
+            }
+            outputDesc->updateGain(curDevice, musicVolumeDb, minMusicVolumeDb, maxMusicVolumeDb);
+            // for CTS case: testAudioTrackMuteFromStreamVolumeNotification, testMediaPlayerMuteFromStreamVolumeNotification
+            if (volumeDb > VOLUME_MIN_DB) {
+                volumeDb = 0.0f;
+            }
+        } else if (curDevice == AUDIO_DEVICE_OUT_HDMI_ARC) {
+            volumeDb = 0.0f;
+        }
+    } else {
+        VolumeSource musicVolSrc = toVolumeSource(AUDIO_STREAM_MUSIC, false);
+        bool    bootVideoRunning = property_get_int32("service.bootvideo.exit", 0) == 1;
+        ALOGV("[%s:%d] bootVideoRunning:%d, music:%d", __func__, __LINE__, bootVideoRunning, (musicVolSrc == volumeSource));
+        if (bootVideoRunning && musicVolSrc == volumeSource) {
+            volumeDb = -18.37f;
+        }
+    }
+    /*[Amlogic end]-----------------------------------------------------------*/
     const bool muted = (index == 0) && (volumeDb != 0.0f);
     outputDesc->setVolume(volumeDb, muted, volumeSource, curves.getStreamTypes(),
             deviceTypes, delayMs, force, isVoiceVolSrc);

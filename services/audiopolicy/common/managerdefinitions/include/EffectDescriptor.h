@@ -87,11 +87,16 @@ private:
     /**
      * Maximum CPU load allocated to audio effects in 0.1 MIPS (ARMv5TE, 0 WS memory) units
      */
-    static const uint32_t MAX_EFFECTS_CPU_LOAD = 1000;
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: I17bc894f3139e5b5b0fee8015aa2298a25496871 */
+    /* SWPL-3766 CTS: run cts -m CtsMediaTestCases -t  android.media.cts.AudioEffectTest */
+    static const uint32_t MAX_EFFECTS_CPU_LOAD = 1500;
     /**
      * Maximum memory allocated to audio effects in KB
      */
-    static const uint32_t MAX_EFFECTS_MEMORY = 512;
+    static const uint32_t MAX_EFFECTS_MEMORY = 1024;
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: Id7204729e7ed599af85fb820a417a699626606b0 */
 };
 
 } // namespace android

@@ -36,4 +36,12 @@ enum AudioPolicyForcedConfig {
     ENCODED_SURROUND_NEVER = 13,
     ENCODED_SURROUND_ALWAYS = 14,
     ENCODED_SURROUND_MANUAL = 15,
+
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: Id7204729e7ed599af85fb820a417a699626606b0 */
+    HDMI_ARC = 16,
+    SPDIF = 17,
+    HDMI_OUT = 18,
+    SPEAKER_SPDIF = 19,
+    /*[Amlogic end]-----------------------------------------------------------*/
 }
