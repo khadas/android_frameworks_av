@@ -17,7 +17,6 @@
 #define LOG_TAG "CameraService"
 #define ATRACE_TAG ATRACE_TAG_CAMERA
 //#define LOG_NDEBUG 0
-
 #include <algorithm>
 #include <climits>
 #include <stdio.h>
@@ -81,6 +80,10 @@
 #include "utils/TagMonitor.h"
 #include "utils/CameraThreadState.h"
 #include "utils/CameraServiceProxyWrapper.h"
+
+#ifdef HDMI_ENABLE
+#include <rockchip/hardware/hdmi/1.0/IHdmi.h>
+#endif
 
 namespace {
     const char* kPermissionServiceName = "permission";
@@ -491,6 +494,21 @@ void CameraService::onDeviceStatusChanged(const String8& id,
             addStates(id);
 
             updateStatus(newStatus, id);
+#ifdef HDMI_ENABLE
+            sp<rockchip::hardware::hdmi::V1_0::IHdmi> client = rockchip::hardware::hdmi::V1_0::IHdmi::getService();
+            ::android::hardware::hidl_string deviceId;
+            if(client.get()!= nullptr){
+                client->getHdmiDeviceId( [&](const ::android::hardware::hidl_string &id){
+                        deviceId = id.c_str();
+                        ALOGD("cameraId:%s",id.c_str());
+                });
+                ALOGD("getHdmiDeviceId:%s",deviceId.c_str());
+            }
+            if(client.get()!= nullptr && strstr(id.string(),deviceId.c_str())){
+                client->onStatusChange((uint32_t)newHalStatus);
+                ALOGD("onStatusChange:%d",newHalStatus);
+            }
+#endif
         } else {
             ALOGE("%s: Bad camera ID %s", __FUNCTION__, id.string());
         }
@@ -537,6 +555,22 @@ void CameraService::onDeviceStatusChanged(const String8& id,
         }
         updateStatus(newStatus, id);
     }
+#ifdef HDMI_ENABLE
+    sp<rockchip::hardware::hdmi::V1_0::IHdmi> client = rockchip::hardware::hdmi::V1_0::IHdmi::getService();
+    ::android::hardware::hidl_string deviceId;
+    if(client.get()!= nullptr){
+        client->getHdmiDeviceId( [&](const ::android::hardware::hidl_string &id){
+                deviceId = id.c_str();
+                ALOGD("cameraId:%s",id.c_str());
+        });
+        ALOGD("getHdmiDeviceId:%s",deviceId.c_str());
+    }
+    if(client.get()!= nullptr && strstr(id.string(),deviceId.c_str())){
+
+        client->onStatusChange((uint32_t)newHalStatus);
+        ALOGD("onStatusChange:%d",newHalStatus);
+    }
+#endif
 }
 
 void CameraService::onDeviceStatusChanged(const String8& id,
@@ -1938,6 +1972,17 @@ Status CameraService::connectHelper(const sp<CALLBACK>& cameraCb, const String8&
     ALOGI("CameraService::connect call (PID %d \"%s\", camera ID %s) and "
             "Camera API version %d", packagePid, clientName8.string(), cameraId.string(),
             static_cast<int>(effectiveApiLevel));
+
+#ifdef HDMI_ENABLE
+    sp<rockchip::hardware::hdmi::V1_0::IHdmi> hdmi= rockchip::hardware::hdmi::V1_0::IHdmi::getService();
+    if(hdmi.get()!= nullptr){
+        ::android::hardware::hidl_string deviceId = cameraId.string();
+        rockchip::hardware::hdmi::V1_0::HdmiAudioStatus audioStatus;
+        audioStatus.status = 1;
+        audioStatus.deviceId = deviceId;
+        hdmi->onAudioChange(audioStatus);
+    }
+#endif
 
     nsecs_t openTimeNs = systemTime();
 
