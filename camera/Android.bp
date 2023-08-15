@@ -111,6 +111,13 @@ cc_library {
         "-Wall",
         "-Wextra",
     ],
+    product_variables: {
+       cameraSupportVirtual: {
+           cppflags:[
+               "-DVIRTUAL_ENABLE",
+           ],
+       }
+    },
 
 }
 

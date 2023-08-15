@@ -65,6 +65,10 @@ status_t CameraUtils::getRotationTransform(const CameraMetadata& staticInfo,
     } else if (mirrorMode == OutputConfiguration::MIRROR_MODE_V) {
         mirror = NATIVE_WINDOW_TRANSFORM_FLIP_V;
     }
+#ifdef VIRTUAL_ENABLE
+    mirror = 0;
+    ALOGD("%s mirrorMode:%d mirror:%d",__FUNCTION__,mirrorMode,mirror);
+#endif
 
     int orientation = entry.data.i32[0];
     if (mirror == 0) {
@@ -131,6 +135,9 @@ status_t CameraUtils::getRotationTransform(const CameraMetadata& staticInfo,
     flags |= NATIVE_WINDOW_TRANSFORM_INVERSE_DISPLAY;
 
     ALOGV("%s: final transform = 0x%x", __FUNCTION__, flags);
+#ifdef VIRTUAL_ENABLE
+    ALOGD("%s: final transform = 0x%x", __FUNCTION__, flags);
+#endif
 
     return OK;
 }

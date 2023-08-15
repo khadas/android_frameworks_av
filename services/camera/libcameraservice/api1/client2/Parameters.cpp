@@ -2896,6 +2896,10 @@ bool Parameters::boolFromString(const char *boolStr) {
 }
 
 int Parameters::degToTransform(int degrees, bool mirror) {
+#ifdef VIRTUAL_ENABLE
+    mirror = false;
+    ALOGD("%s degrees:%d,mirror:%d",__FUNCTION__,degrees,mirror);
+#endif
     if (!mirror) {
         if (degrees == 0) return 0;
         else if (degrees == 90) return HAL_TRANSFORM_ROT_90;

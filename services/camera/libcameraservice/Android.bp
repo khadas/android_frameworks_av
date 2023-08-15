@@ -208,8 +208,14 @@ cc_library_shared {
            cppflags:[
                "-DHDMI_ENABLE",
            ],
+       },
+       cameraSupportVirtual: {
+           cppflags:[
+               "-DVIRTUAL_ENABLE",
+           ],
        }
     },
+
 
     cflags: [
         "-Wall",
