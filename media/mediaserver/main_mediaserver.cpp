@@ -27,6 +27,7 @@
 
 #include <MediaPlayerService.h>
 #include <ResourceManagerService.h>
+#include <sys/resource.h>
 
 using namespace android;
 
@@ -34,6 +35,7 @@ int main(int argc __unused, char **argv __unused)
 {
     signal(SIGPIPE, SIG_IGN);
 
+    ALOGI("mediaserver : setpriority = %d", setpriority(PRIO_PROCESS, 0, -10));
     sp<ProcessState> proc(ProcessState::self());
     sp<IServiceManager> sm(defaultServiceManager());
     ALOGI("ServiceManager: %p", sm.get());

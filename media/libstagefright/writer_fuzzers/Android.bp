@@ -51,6 +51,7 @@ cc_defaults {
     defaults: ["writer-fuzzerbase-defaults"],
     static_libs: [
         "libwriterfuzzerbase",
+        "//vendor/amlogic/common:libmediavendor_default",
     ],
     fuzz_config: {
         cc: [

@@ -49,6 +49,7 @@ cc_test {
     static_libs: [
         "libstagefright",
         "libstagefright_foundation",
+        "//vendor/amlogic/common:libmediavendor_default",
     ],
 
     // TODO: (b/150181583)

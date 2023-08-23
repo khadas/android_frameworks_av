@@ -40,6 +40,7 @@ cc_test {
         "libstagefright",
         "libstagefright_webm",
         "libstagefright_foundation",
+        "//vendor/amlogic/common:libmediavendor_default",
     ],
 
     shared_libs: [

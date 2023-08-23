@@ -43,6 +43,9 @@
 #include <media/stagefright/Utils.h>
 #include <media/AudioParameter.h>
 #include <system/audio.h>
+#if (!defined STAGEFRIGHT_PLAYER2) && (!defined MPEG2EXTRACTOR)
+#include <MediaVendorExt.h>
+#endif
 
 // TODO : Remove the defines once mainline media is built against NDK >= 31.
 // The mp4 extractor is part of mainline and builds against NDK 29 as of
@@ -1573,6 +1576,10 @@ status_t convertMetaDataToMessage(
         msg->setBuffer("csd-2", buffer);
     }
 
+#if (!defined STAGEFRIGHT_PLAYER2) && (!defined MPEG2EXTRACTOR)
+    MediaVendorExt::imp()->convertMetaDataToMessage(new MetaData(*meta), msg);
+#endif
+
     *format = msg;
 
     return OK;
@@ -1775,6 +1782,9 @@ status_t convertMessageToMetaData(const sp<AMessage> &msg, sp<MetaData> &meta) {
     }
 
     convertMessageToMetaDataFromMappings(msg, meta);
+#if (!defined STAGEFRIGHT_PLAYER2) && (!defined MPEG2EXTRACTOR)
+    MediaVendorExt::imp()->convertMessageToMetaData(msg, meta);
+#endif
 
     int32_t systemId;
     if (msg->findInt32("ca-system-id", &systemId)) {

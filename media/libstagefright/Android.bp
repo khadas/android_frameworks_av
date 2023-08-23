@@ -118,6 +118,7 @@ cc_library_static {
         "-Werror",
         "-Wno-error=deprecated-declarations",
         "-Wall",
+        "-DMPEG2EXTRACTOR",
     ],
 
     sanitize: {
@@ -328,6 +329,7 @@ cc_library {
         "framework-permission-aidl-cpp",
         "libmediandk_format",
         "libmedia_ndkformatpriv",
+        "//vendor/amlogic/common:libmediavendor_default",
     ],
 
     header_libs:[
@@ -355,6 +357,7 @@ cc_library {
         "-Werror",
         "-Wno-error=deprecated-declarations",
         "-Wall",
+        "-DAMEXTRACTOR",
     ],
 
     version_script: "exports.lds",
@@ -363,6 +366,9 @@ cc_library {
         debuggable: {
             // enable experiments only in userdebug and eng builds
             cflags: ["-DENABLE_STAGEFRIGHT_EXPERIMENTS"],
+        },
+        platform_sdk_version: {
+            cflags: ["-DANDROID_PLATFORM_SDK_VERSION=%d"],
         },
     },
 

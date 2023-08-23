@@ -301,6 +301,24 @@ void MediaExtractorFactory::LoadExtractors() {
         ALOGE("couldn't find media namespace.");
     }
 
+#ifdef AMEXTRACTOR
+    android_namespace_t *mediaNsAm = android_get_exported_namespace("com_amlogic_mediaextractor");
+    if (mediaNsAm != NULL) {
+        const android_dlextinfo dlextinfo = {
+            .flags = ANDROID_DLEXT_USE_NAMESPACE,
+            .library_namespace = mediaNsAm,
+        };
+        RegisterExtractors("/apex/com.amlogic.mediaextractor/lib"
+#ifdef __LP64__
+                "64"
+#endif
+                "/extractors", &dlextinfo, *newList);
+
+    } else {
+        ALOGE("couldn't find com_amlogic_mediaextractor namespace.");
+    }
+#endif
+
     RegisterExtractors("/system/lib"
 #ifdef __LP64__
             "64"

@@ -24,6 +24,9 @@
 #include <media/MediaExtractorPluginApi.h>
 #include <media/NdkMediaErrorPriv.h>
 #include <media/NdkMediaFormatPriv.h>
+#if (!defined STAGEFRIGHT_PLAYER2) && (!defined MPEG2EXTRACTOR)
+#include <MediaVendorExt.h>
+#endif
 
 namespace android {
 
@@ -195,6 +198,9 @@ status_t MediaTrackCUnwrapper::read(MediaBufferBase **buffer, const ReadOptions 
             meta.setData(kKeyOpaqueCSD0,
                     MetaDataBase::Type::TYPE_NONE, valbuf->data(), valbuf->size());
         }
+#if (!defined STAGEFRIGHT_PLAYER2) && (!defined MPEG2EXTRACTOR)
+        MediaVendorExt::imp()->convertAMediaFormatToMetaData(format, meta);
+#endif
 
     } else {
         *buffer = nullptr;
