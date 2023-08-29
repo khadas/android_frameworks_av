@@ -205,6 +205,7 @@ player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
         || strstr(filePath.string(), ".mid")
         || strstr(filePath.string(), ".MID")
         || strstr(filePath.string(), ".mp3")
+        || strstr(filePath.string(), ".imy")
         || strstr(filePath.string(), ".aac")
         || strstr(filePath.string(), ".apk")
         || strstr(filePath.string(), ".m4a")
