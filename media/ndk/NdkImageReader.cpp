@@ -455,7 +455,7 @@ AImageReader::acquireImageLocked(/*out*/AImage** image, /*out*/int* acquireFence
         Point lt = buffer->mCrop.leftTop();
         if (lt.x != 0 || lt.y != 0) {
             ALOGE("Crop left top corner [%d, %d] not at origin", lt.x, lt.y);
-            return AMEDIA_ERROR_UNKNOWN;
+            // return AMEDIA_ERROR_UNKNOWN;
         }
 
         // Check if the producer buffer configurations match what ImageReader configured.
