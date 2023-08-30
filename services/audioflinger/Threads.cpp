@@ -2346,7 +2346,17 @@ sp<AudioFlinger::PlaybackThread::Track> AudioFlinger::PlaybackThread::createTrac
               *flags, outputFlags);
         *flags = (audio_output_flags_t)(*flags & outputFlags);
     }
-
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: I28b383c4149ab0f1ab933756730491b68d3a7429 */
+    /* SWPL-118008 */
+    //add this patch for multi channel pcm, fix can't pause stream issue.
+    if (format == AUDIO_FORMAT_PCM_16_BIT
+        && (channelMask == AUDIO_CHANNEL_OUT_5POINT1 || channelMask == AUDIO_CHANNEL_OUT_7POINT1)
+        && (outputFlags & AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD) != 0) {
+        ALOGW("createTrack_l(): multi channel stream, change the flags to (%08x)", outputFlags);
+        *flags = outputFlags;
+    }
+    /*[Amlogic end]-----------------------------------------------------------*/
     if (isBitPerfect) {
         sp<EffectChain> chain = getEffectChain_l(sessionId);
         if (chain.get() != nullptr) {

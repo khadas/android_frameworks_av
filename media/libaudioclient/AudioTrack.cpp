@@ -1482,7 +1482,17 @@ ssize_t AudioTrack::setStartThresholdInFrames(size_t startThresholdInFrames)
 status_t AudioTrack::setLoop(uint32_t loopStart, uint32_t loopEnd, int loopCount)
 {
     if (mSharedBuffer == 0 || isOffloadedOrDirect()) {
-        return INVALID_OPERATION;
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: I28b383c4149ab0f1ab933756730491b68d3a7429 */
+        /* SWPL-118008 */
+        ALOGI("%s %d isOffloadedOrDirect:%d, mSharedBuffer:%s,  return:%d", __func__, __LINE__,
+            isOffloadedOrDirect(), mSharedBuffer==0 ?"is null":"is not null", INVALID_OPERATION);
+        if (mChannelCount > 2 && mFormat == AUDIO_FORMAT_PCM_16_BIT) {
+            //TODO, multi pcm should not return error.
+        } else {
+            return INVALID_OPERATION;
+        }
+        /*[Amlogic end]-----------------------------------------------------------*/
     }
 
     if (loopCount == 0) {
@@ -1537,7 +1547,17 @@ status_t AudioTrack::setMarkerPosition(uint32_t marker)
 status_t AudioTrack::getMarkerPosition(uint32_t *marker) const
 {
     if (isOffloadedOrDirect()) {
-        return INVALID_OPERATION;
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: I28b383c4149ab0f1ab933756730491b68d3a7429 */
+        /* SWPL-118008 */
+        ALOGI("%s %d isOffloadedOrDirect:%d, mSharedBuffer:%s,  return:%d", __func__, __LINE__,
+            isOffloadedOrDirect(), mSharedBuffer==0 ?"is null":"is not null", INVALID_OPERATION);
+        if (mChannelCount > 2 && mFormat == AUDIO_FORMAT_PCM_16_BIT) {
+            //TODO, multi pcm should not return error.
+        } else {
+            return INVALID_OPERATION;
+        }
+        /*[Amlogic end]-----------------------------------------------------------*/
     }
     if (marker == NULL) {
         return BAD_VALUE;
@@ -1554,7 +1574,17 @@ status_t AudioTrack::setPositionUpdatePeriod(uint32_t updatePeriod)
     AutoMutex lock(mLock);
     // The only purpose of setting position update period is to get a callback
     if (!mCallback.promote() || isOffloadedOrDirect_l()) {
-        return INVALID_OPERATION;
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: I28b383c4149ab0f1ab933756730491b68d3a7429 */
+        /* SWPL-118008 */
+        ALOGI("%s %d isOffloadedOrDirect:%d, mSharedBuffer:%s,  return:%d", __func__, __LINE__,
+            isOffloadedOrDirect(), mSharedBuffer==0 ?"is null":"is not null", INVALID_OPERATION);
+        if (mChannelCount > 2 && mFormat == AUDIO_FORMAT_PCM_16_BIT) {
+            //TODO, multi pcm should not return error.
+        } else {
+            return INVALID_OPERATION;
+        }
+        /*[Amlogic end]-----------------------------------------------------------*/
     }
 
     mNewPosition = updateAndGetPosition_l() + updatePeriod;
@@ -1570,7 +1600,17 @@ status_t AudioTrack::setPositionUpdatePeriod(uint32_t updatePeriod)
 status_t AudioTrack::getPositionUpdatePeriod(uint32_t *updatePeriod) const
 {
     if (isOffloadedOrDirect()) {
-        return INVALID_OPERATION;
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: I28b383c4149ab0f1ab933756730491b68d3a7429 */
+        /* SWPL-118008 */
+        ALOGI("%s %d isOffloadedOrDirect:%d, mSharedBuffer:%s,  return:%d", __func__, __LINE__,
+            isOffloadedOrDirect(), mSharedBuffer==0 ?"is null":"is not null", INVALID_OPERATION);
+        if (mChannelCount > 2 && mFormat == AUDIO_FORMAT_PCM_16_BIT) {
+            //TODO, multi pcm should not return error.
+        } else {
+            return INVALID_OPERATION;
+        }
+        /*[Amlogic end]-----------------------------------------------------------*/
     }
     if (updatePeriod == NULL) {
         return BAD_VALUE;
@@ -1585,7 +1625,17 @@ status_t AudioTrack::getPositionUpdatePeriod(uint32_t *updatePeriod) const
 status_t AudioTrack::setPosition(uint32_t position)
 {
     if (mSharedBuffer == 0 || isOffloadedOrDirect()) {
-        return INVALID_OPERATION;
+        /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+        /* Change-Id: I28b383c4149ab0f1ab933756730491b68d3a7429 */
+        /* SWPL-118008 */
+        ALOGI("%s %d isOffloadedOrDirect:%d, mSharedBuffer:%s,  return:%d", __func__, __LINE__,
+            isOffloadedOrDirect(), mSharedBuffer==0 ?"is null":"is not null", INVALID_OPERATION);
+        if (mChannelCount > 2 && mFormat == AUDIO_FORMAT_PCM_16_BIT) {
+            //TODO, multi pcm should not return error.
+        } else {
+            return INVALID_OPERATION;
+        }
+        /*[Amlogic end]-----------------------------------------------------------*/
     }
     if (position > mFrameCount) {
         return BAD_VALUE;

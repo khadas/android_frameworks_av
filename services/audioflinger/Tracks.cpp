@@ -397,6 +397,13 @@ Status AudioFlinger::TrackHandle::getTimestamp(media::AudioTimestampInternal* ti
     if (*_aidl_return != OK) {
         return Status::ok();
     }
+    /*[Amlogic start]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+    /* Change-Id: I91b0c4bcc4a7dd8dd60adcfab5695e9beff8125c */
+    /* SWPL-79974 */
+    if (legacy.mPosition > INT_MAX) {
+        legacy.mPosition = legacy.mPosition & INT_MAX;
+    }
+    /*[Amlogic end]-----------------------------------------------------------*/
     *timestamp = legacy2aidl_AudioTimestamp_AudioTimestampInternal(legacy).value();
     return Status::ok();
 }
