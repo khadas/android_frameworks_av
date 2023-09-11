@@ -43,6 +43,9 @@
 #include "utils/Codec2Mapper.h"
 #include "C2OMXNode.h"
 #include "Codec2Buffer.h"
+#include <android-base/properties.h>
+#include <cutils/properties.h>
+
 
 namespace android {
 
@@ -247,7 +250,17 @@ status_t C2OMXNode::getParameter(OMX_INDEXTYPE index, void *params, size_t size)
                 break;
             }
 
-            pDef->nBufferCountActual = 16;
+            //pDef->nBufferCountActual = 16;
+            /*add for t7c 4k rgba screenrecord,codec_mm not enough*/
+            char strdevice[PROP_VALUE_MAX] = {0};
+            int len = property_get("ro.product.vendor.device",strdevice,NULL);
+            if (len && !strcmp(strdevice,"kvim4") && mWidth * mHeight >= 3840 * 2160) {
+                pDef->nBufferCountActual = 8;
+                ALOGE("set nBufferCountActual %d",pDef->nBufferCountActual);
+            }
+            else {
+                pDef->nBufferCountActual = 16;
+            }
 
             // WORKAROUND: having more slots improve performance while consuming
             // more memory. This is a temporary workaround to reduce memory for
