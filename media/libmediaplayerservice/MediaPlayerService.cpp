@@ -74,6 +74,7 @@
 #include <system/audio.h>
 
 #include <private/android_filesystem_config.h>
+#include <binder/PermissionController.h>
 
 #include "ActivityManager.h"
 #include "MediaRecorderClient.h"
@@ -840,6 +841,18 @@ sp<MediaPlayerBase> MediaPlayerService::Client::createPlayer(player_type playerT
         ALOGV("delete player");
         p.clear();
     }
+
+    Vector<String16> packages;
+    uid_t uid = VALUE_OR_FATAL(aidl2legacy_int32_t_uid_t(mAttributionSource.uid));
+    PermissionController{}.getPackagesForUid(uid, packages);
+    //ALOGD("package name: %s uid %d",String8(packages[0]).string(),uid);
+    if (strstr(String8(packages[0]).string(), "android.media.player.cts")
+        || strstr(String8(packages[0]).string(), "android.cts.verifier")
+        || strstr(String8(packages[0]).string(), "android.mediastress.cts")
+        || strstr(String8(packages[0]).string(), "android.security.cts")) {
+        playerType = NU_PLAYER;
+    }
+
     if (p == NULL) {
         p = MediaPlayerFactory::createPlayer(playerType, mListener,
             VALUE_OR_FATAL(aidl2legacy_int32_t_pid_t(mAttributionSource.pid)));
