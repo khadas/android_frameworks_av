@@ -846,11 +846,12 @@ sp<MediaPlayerBase> MediaPlayerService::Client::createPlayer(player_type playerT
     uid_t uid = VALUE_OR_FATAL(aidl2legacy_int32_t_uid_t(mAttributionSource.uid));
     PermissionController{}.getPackagesForUid(uid, packages);
     //ALOGD("package name: %s uid %d",String8(packages[0]).string(),uid);
-    if (strstr(String8(packages[0]).string(), "android.media.player.cts")
+    if (!packages.isEmpty()
+        && (strstr(String8(packages[0]).string(), "android.media.player.cts")
         || strstr(String8(packages[0]).string(), "android.cts.verifier")
         || strstr(String8(packages[0]).string(), "google.android.wvts")
         || strstr(String8(packages[0]).string(), "android.mediastress.cts")
-        || strstr(String8(packages[0]).string(), "android.security.cts")) {
+        || strstr(String8(packages[0]).string(), "android.security.cts"))) {
         playerType = NU_PLAYER;
     }
 
