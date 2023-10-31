@@ -849,6 +849,8 @@ sp<MediaPlayerBase> MediaPlayerService::Client::createPlayer(player_type playerT
     if (!packages.isEmpty()
         && (strstr(String8(packages[0]).string(), "android.media.player.cts")
         || strstr(String8(packages[0]).string(), "android.cts.verifier")
+        || strstr(String8(packages[0]).string(), "android.media.drmframework.cts")
+        || strstr(String8(packages[0]).string(), "com.google.android.providers.media.module")
         || strstr(String8(packages[0]).string(), "google.android.wvts")
         || strstr(String8(packages[0]).string(), "android.mediastress.cts")
         || strstr(String8(packages[0]).string(), "android.security.cts"))) {
