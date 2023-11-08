@@ -92,6 +92,7 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
     //ALOGD("package name: %s uid %d",String8(packages[0]).string(),uid);
     if (!packages.isEmpty()
         && (strstr(String8(packages[0]).string(), "android.media.player.cts")
+        || strstr(String8(packages[0]).string(), "android.media.recorder.cts")
         || strstr(String8(packages[0]).string(), "android.cts.verifier")
         || strstr(String8(packages[0]).string(), "android.media.misc.cts")
         || strstr(String8(packages[0]).string(), "android.media.drmframework.cts")
