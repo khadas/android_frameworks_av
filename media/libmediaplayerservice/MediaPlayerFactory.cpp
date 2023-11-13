@@ -24,6 +24,7 @@
 #include <media/DataSource.h>
 #include <media/IMediaPlayer.h>
 #include <media/stagefright/foundation/ADebug.h>
+#include <binder/PermissionController.h>
 #include <utils/Errors.h>
 #include <utils/misc.h>
 
@@ -362,6 +363,31 @@ void MediaPlayerFactory::registerBuiltinFactories() {
         delete factory;
 
     sInitComplete = true;
+}
+
+bool MediaPlayerFactory::isGMSPackage(uid_t uid) {
+    bool ret = false;
+    Vector<String16> packages;
+    PermissionController{}.getPackagesForUid(uid, packages);
+    if (!packages.isEmpty()
+        && (strstr(String8(packages[0]).string(), "android.media.player.cts")
+        || strstr(String8(packages[0]).string(), "android.media.recorder.cts")
+        || strstr(String8(packages[0]).string(), "android.media.muxer.cts")
+        || strstr(String8(packages[0]).string(), "android.netsecpolicy.usescleartext_false.cts")
+        || strstr(String8(packages[0]).string(), "android.netsecpolicy.usescleartext_unspecified.cts")
+        || strstr(String8(packages[0]).string(), "android.drm.cts")
+        || strstr(String8(packages[0]).string(), "android.cts.verifier")
+        || strstr(String8(packages[0]).string(), "android.media.misc.cts")
+        || strstr(String8(packages[0]).string(), "android.media.drmframework.cts")
+        || strstr(String8(packages[0]).string(), "com.google.android.providers.media.module")
+        || strstr(String8(packages[0]).string(), "google.android.wvts")
+        || strstr(String8(packages[0]).string(), "android.mediastress.cts")
+        || strstr(String8(packages[0]).string(), "android.security.cts"))) {
+        ALOGD("gms package name: %s uid %d",String8(packages[0]).string(),uid);
+        ret = true;
+    }
+
+    return ret;
 }
 
 }  // namespace android

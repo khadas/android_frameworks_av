@@ -87,21 +87,8 @@ static sp<MediaMetadataRetrieverBase> createRetriever(player_type playerType)
 {
     sp<MediaMetadataRetrieverBase> p;
     uid_t uid = IPCThreadState::self()->getCallingUid();
-    Vector<String16> packages;
-    PermissionController{}.getPackagesForUid(uid, packages);
-    //ALOGD("package name: %s uid %d",String8(packages[0]).string(),uid);
-    if (!packages.isEmpty()
-        && (strstr(String8(packages[0]).string(), "android.media.player.cts")
-        || strstr(String8(packages[0]).string(), "android.media.recorder.cts")
-        || strstr(String8(packages[0]).string(), "android.cts.verifier")
-        || strstr(String8(packages[0]).string(), "android.media.misc.cts")
-        || strstr(String8(packages[0]).string(), "android.media.drmframework.cts")
-        || strstr(String8(packages[0]).string(), "com.google.android.providers.media.module")
-        || strstr(String8(packages[0]).string(), "google.android.wvts")
-        || strstr(String8(packages[0]).string(), "android.mediastress.cts")
-        || strstr(String8(packages[0]).string(), "android.security.cts"))) {
+    if (MediaPlayerFactory::isGMSPackage(uid))
         playerType = NU_PLAYER;
-    }
     char value[PROPERTY_VALUE_MAX];
     switch (playerType) {
         case STAGEFRIGHT_PLAYER:

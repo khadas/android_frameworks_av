@@ -69,6 +69,7 @@ class MediaPlayerFactory {
                                             pid_t pid);
 
     static void registerBuiltinFactories();
+    static bool isGMSPackage(uid_t uid);
 
   private:
     typedef KeyedVector<player_type, IFactory*> tFactoryMap;
