@@ -373,6 +373,7 @@ bool MediaPlayerFactory::isGMSPackage(uid_t uid) {
         && (strstr(String8(packages[0]).string(), "android.media.player.cts")
         || strstr(String8(packages[0]).string(), "android.media.recorder.cts")
         || strstr(String8(packages[0]).string(), "android.media.muxer.cts")
+        || strstr(String8(packages[0]).string(), "android.media.codec.cts")
         || strstr(String8(packages[0]).string(), "android.netsecpolicy.usescleartext_false.cts")
         || strstr(String8(packages[0]).string(), "android.netsecpolicy.usescleartext_unspecified.cts")
         || strstr(String8(packages[0]).string(), "android.drm.cts")
