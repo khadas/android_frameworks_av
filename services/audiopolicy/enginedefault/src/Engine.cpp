@@ -24,6 +24,11 @@
 #define ALOGVV(a...) do { } while(0)
 #endif
 
+//-----------------------rk code----------
+// open all the devices simultaneously in one hal
+#define OPEN_ALL_DEVICES_SIMULT 0
+//----------------------------------------
+
 #include "Engine.h"
 #include <android-base/macros.h>
 #include <AudioPolicyManagerObserver.h>
@@ -445,6 +450,23 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
         // device is DEVICE_OUT_SPEAKER if we come from case STRATEGY_SONIFICATION or
         // STRATEGY_ENFORCED_AUDIBLE, AUDIO_DEVICE_NONE otherwise
         devices.add(devices2);
+
+//-----------------------rk code----------
+#if OPEN_ALL_DEVICES_SIMULT
+        DeviceVector devicesOpenSimult;
+        DeviceVector devicesAlwaysOpen;
+        if (strategy == STRATEGY_MEDIA) {
+            devicesOpenSimult = availableOutputDevices.getDevicesFromTypes({
+                    AUDIO_DEVICE_OUT_SPEAKER, AUDIO_DEVICE_OUT_HDMI,
+                    VX_ROCKCHIP_OUT_HDMI0, VX_ROCKCHIP_OUT_SPDIF0,});
+            devicesAlwaysOpen = availableOutputDevices.getDevicesFromType(
+                    AUDIO_DEVICE_OUT_SPDIF);
+        }
+        if (getLastRemovableMediaDevices().size() == 0)
+            devices.add(devicesOpenSimult);
+        devices.add(devicesAlwaysOpen);
+#endif
+//-----------------------------------------
 
         // If hdmi system audio mode is on, remove speaker out of output list.
         if ((strategy == STRATEGY_MEDIA) &&

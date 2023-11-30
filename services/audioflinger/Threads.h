@@ -1369,6 +1369,9 @@ private:
     float                           mMasterVolume;
     std::atomic<float>              mMasterBalance{};
     audio_utils::Balance            mBalance;
+//-----------------------rk code----------
+    float                           mLastVol;
+//----------------------------------------
     int                             mNumWrites;
     int                             mNumDelayedWrites;
     bool                            mInWrite;

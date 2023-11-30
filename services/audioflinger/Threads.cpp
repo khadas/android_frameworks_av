@@ -19,6 +19,9 @@
 #define LOG_TAG "AudioFlinger"
 // #define LOG_NDEBUG 0
 #define ATRACE_TAG ATRACE_TAG_AUDIO
+//-----------------------rk code----------
+#define FIX_VOL_AND_SEND_VOL_TO_HAL 0
+//----------------------------------------
 
 #include "Configuration.h"
 #include <math.h>
@@ -2073,6 +2076,7 @@ AudioFlinger::PlaybackThread::PlaybackThread(const sp<AudioFlinger>& audioFlinge
         // mStreamTypes[] initialized in constructor body
         mTracks(type == MIXER),
         mOutput(output),
+        mLastVol(1.1),
         mNumWrites(0), mNumDelayedWrites(0), mInWrite(false),
         mMixerStatus(MIXER_IDLE),
         mMixerStatusIgnoringFastTracks(MIXER_IDLE),
@@ -5806,6 +5810,23 @@ AudioFlinger::PlaybackThread::mixer_state AudioFlinger::MixerThread::prepareTrac
             // XXX: these things DON'T need to be done each time
             mAudioMixer->setBufferProvider(trackId, track);
             mAudioMixer->enable(trackId);
+
+//-----------------------rk code----------
+#if FIX_VOL_AND_SEND_VOL_TO_HAL
+            /*
+             * This code applies to the following scenarios：
+             *     1. open hdmi/spdif/spk at the same time in one hal(primary)
+             *     2. hdmi/spdif vol fix and max, spk vol can be set
+             */
+            if (mOutput->flags & AUDIO_OUTPUT_FLAG_PRIMARY) {
+                if (mLastVol != vlf) {
+                    mOutput->stream->setVolume(vlf, vrf);
+                    mLastVol = vlf;
+                }
+                vlf = vrf = 1.0;
+            }
+#endif
+//----------------------------------------
 
             mAudioMixer->setParameter(trackId, param, AudioMixer::VOLUME0, &vlf);
             mAudioMixer->setParameter(trackId, param, AudioMixer::VOLUME1, &vrf);
