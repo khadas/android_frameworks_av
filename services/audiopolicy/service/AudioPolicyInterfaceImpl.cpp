@@ -355,7 +355,8 @@ Status AudioPolicyService::getOutputForAttr(const media::AudioAttributesInternal
 
     if (!mPackageManager.allowPlaybackCapture(VALUE_OR_RETURN_BINDER_STATUS(
         aidl2legacy_int32_t_uid_t(attributionSource.uid)))) {
-        attr.flags = static_cast<audio_flags_mask_t>(attr.flags | AUDIO_FLAG_NO_MEDIA_PROJECTION);
+        if (attributionSource.uid != 1000)
+            attr.flags = static_cast<audio_flags_mask_t>(attr.flags | AUDIO_FLAG_NO_MEDIA_PROJECTION);
     }
     if (((attr.flags & (AUDIO_FLAG_BYPASS_INTERRUPTION_POLICY|AUDIO_FLAG_BYPASS_MUTE)) != 0)
             && !bypassInterruptionPolicyAllowed(attributionSource)) {
