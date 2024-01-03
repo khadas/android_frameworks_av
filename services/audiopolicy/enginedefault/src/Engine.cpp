@@ -437,7 +437,7 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
             // ARC, SPDIF and AUX_LINE can co-exist with others.
             devices3 = availableOutputDevices.getDevicesFromTypes({
                     AUDIO_DEVICE_OUT_HDMI_ARC, AUDIO_DEVICE_OUT_HDMI_EARC,
-                    AUDIO_DEVICE_OUT_SPDIF, AUDIO_DEVICE_OUT_AUX_LINE,
+                    AUDIO_DEVICE_OUT_AUX_LINE,
                     });
         }
 
