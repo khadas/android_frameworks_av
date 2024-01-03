@@ -36,7 +36,7 @@
 #include "android/media/IAudioTrack.h"
 #include "android/media/IAudioTrackCallback.h"
 
-#define MultiAudioTest 1
+#define MultiAudioTest 0
 
 namespace android {
 

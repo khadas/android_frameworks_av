@@ -498,8 +498,7 @@ status_t AudioTrack::set(
     for (int i = 0 ; i < numPorts; i++) {
         ALOGD("listDeviceType: %d type:0x%x addr:%s id:%d", i,
             audioPorts[i].ext.device.type, audioPorts[i].ext.device.address, audioPorts[i].id);
-        if (strstr(audioPorts[i].ext.device.address, "speaker0") != nullptr
-            && audioPorts[i].ext.device.type == AUDIO_DEVICE_OUT_SPEAKER
+        if (audioPorts[i].ext.device.type == AUDIO_DEVICE_OUT_SPEAKER
             && strstr(tmp.string(), "RockVideoPlayer")) {
            if (streamType == AUDIO_STREAM_MUSIC) {
                 selectedDeviceId = audioPorts[i].id;
