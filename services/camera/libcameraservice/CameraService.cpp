@@ -115,6 +115,8 @@ volatile int32_t gLogLevel = 0;
 #define LOG1(...) ALOGD_IF(gLogLevel >= 1, __VA_ARGS__);
 #define LOG2(...) ALOGD_IF(gLogLevel >= 2, __VA_ARGS__);
 
+#define CONFIG_CAMERA_BACK_APK  "<com.tencent.mm>"
+
 static void setLogLevel(int level) {
     android_atomic_write(level, &gLogLevel);
 }
@@ -978,6 +980,11 @@ Status CameraService::getCameraInfo(int cameraId, bool overrideToPortrait,
     if (hasSystemCameraPermissions) {
         cameraIdBound = mNumberOfCameras;
     }
+
+    char value[PROPERTY_VALUE_MAX];
+    property_get("sys.camera.callprocess", value, "none");
+    ALOGE("getCameraInfo camera callprocess:%s", value);
+
     if (cameraId < 0 || cameraId >= cameraIdBound) {
         return STATUS_ERROR(ERROR_ILLEGAL_ARGUMENT,
                 "CameraId is not valid");
@@ -993,6 +1000,11 @@ Status CameraService::getCameraInfo(int cameraId, bool overrideToPortrait,
                 strerror(-err), err);
         logServiceError(String8::format("Error retrieving camera info from device %d",cameraId),
             ERROR_INVALID_OPERATION);
+    } else {
+        if (strstr(CONFIG_CAMERA_BACK_APK, value) && mNumberOfCameras == 1) {
+            cameraInfo->facing = CAMERA_FACING_BACK;
+            ALOGE("getCameraInfo weixin.");
+        }
     }
 
     return ret;
