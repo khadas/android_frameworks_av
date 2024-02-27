@@ -658,10 +658,15 @@ sp<DeviceDescriptor> Engine::getDeviceForInputSource(audio_source_t inputSource)
                     AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET, String8(""), AUDIO_FORMAT_DEFAULT);
             if (device != nullptr) break;
         }
+		if (property_get_int32("vendor.media.hdmi.camera", 0) == 1) {
+             ALOGI("%s: hdmi camera is recording", __func__);
+             device = availableDevices.getFirstExistingDevice({AUDIO_DEVICE_IN_HDMI});
+        } else {
         device = availableDevices.getFirstExistingDevice({
                 AUDIO_DEVICE_IN_WIRED_HEADSET,
                 AUDIO_DEVICE_IN_USB_HEADSET, AUDIO_DEVICE_IN_USB_DEVICE,
                 AUDIO_DEVICE_IN_BLUETOOTH_BLE, AUDIO_DEVICE_IN_BUILTIN_MIC});
+		}
         break;
 
     case AUDIO_SOURCE_VOICE_COMMUNICATION:
@@ -739,9 +744,14 @@ sp<DeviceDescriptor> Engine::getDeviceForInputSource(audio_source_t inputSource)
         break;
     case AUDIO_SOURCE_CAMCORDER:
         // For a device without built-in mic, adding usb device
+		if (property_get_int32("vendor.media.hdmi.camera", 0) == 1) {
+             ALOGI("%s: hdmi camera is recording", __func__);
+             device = availableDevices.getFirstExistingDevice({AUDIO_DEVICE_IN_HDMI});
+        } else {
         device = availableDevices.getFirstExistingDevice({
                 AUDIO_DEVICE_IN_BACK_MIC, AUDIO_DEVICE_IN_BUILTIN_MIC,
                 AUDIO_DEVICE_IN_USB_DEVICE});
+		}
         break;
     case AUDIO_SOURCE_VOICE_DOWNLINK:
     case AUDIO_SOURCE_VOICE_CALL:
