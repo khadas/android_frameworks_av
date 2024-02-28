@@ -39,6 +39,7 @@ import android.media.IAudioRecord;
 import android.media.IAudioTrack;
 import android.media.ISoundDose;
 import android.media.ISoundDoseCallback;
+import android.media.IRkAiCallback;
 import android.media.MicrophoneInfoFw;
 import android.media.RenderPosition;
 import android.media.TrackSecondaryOutputInfo;
@@ -276,7 +277,12 @@ interface IAudioFlingerService {
      * sound dose methods on the audio server.
      */
     ISoundDose getSoundDoseInterface(in ISoundDoseCallback callback);
-
+//-----------------------rk code----------
+    /**
+     * Send callback from aimanager to audioflinger to get pcm data
+     */
+    void setRkAiCallback(in IRkAiCallback callback);
+//----------------------------------------
     /**
      * Invalidate all tracks with given port ids.
      */

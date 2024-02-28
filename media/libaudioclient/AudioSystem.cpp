@@ -2437,6 +2437,18 @@ status_t AudioSystem::getSoundDoseInterface(const sp<media::ISoundDoseCallback>&
     return OK;
 }
 
+//-----------------------rk code----------
+status_t AudioSystem::setRkAiCallback(const sp<media::IRkAiCallback>& callback){
+    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
+    if (af == nullptr) {
+        return PERMISSION_DENIED;
+    }
+
+    RETURN_STATUS_IF_ERROR(af->setRkAiCallback(callback));
+    return OK;
+}
+//----------------------------------------
+
 status_t AudioSystem::getDirectPlaybackSupport(const audio_attributes_t *attr,
                                                const audio_config_t *config,
                                                audio_direct_mode_t* directMode) {

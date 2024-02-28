@@ -114,6 +114,15 @@
 #include "android/media/BnAudioRecord.h"
 #include "android/media/BnEffect.h"
 
+//-----------------------rk code----------
+#include <stdio.h>
+#include <audio_utils/resampler.h>
+#include <media/stagefright/foundation/AHandler.h>
+#include <media/stagefright/foundation/ALooper.h>
+#include <media/stagefright/foundation/AMessage.h>
+#include "RkRingBuffer.h"
+//----------------------------------------
+
 namespace android {
 
 class AudioMixer;
@@ -317,7 +326,9 @@ public:
 
     virtual status_t getSoundDoseInterface(const sp<media::ISoundDoseCallback>& callback,
                                            sp<media::ISoundDose>* soundDose);
-
+//-----------------------rk code----------
+    virtual status_t setRkAiCallback(const sp<media::IRkAiCallback>& callback);
+//----------------------------------------
     status_t invalidateTracks(const std::vector<audio_port_handle_t>& portIds) override;
 
     virtual status_t getAudioPolicyConfig(media::AudioPolicyConfig* config);
@@ -969,6 +980,9 @@ using effect_buffer_t = int16_t;
 
                 DefaultKeyedVector< audio_io_handle_t, sp<PlaybackThread> >  mPlaybackThreads;
                 stream_type_t                       mStreamTypes[AUDIO_STREAM_CNT];
+//-----------------------rk code----------
+                sp<media::IRkAiCallback> mRkAiCallback;
+//----------------------------------------
 
                 // member variables below are protected by mLock
                 float                               mMasterVolume;
@@ -989,8 +1003,10 @@ using effect_buffer_t = int16_t;
 
                 // protected by mLock
                 Vector<AudioSessionRef*> mAudioSessionRefs;
-
                 float       masterVolume_l() const;
+//-----------------------rk code----------
+                sp<media::IRkAiCallback> rkAiCallback_l() const;
+//----------------------------------------
                 float       getMasterBalance_l() const;
                 bool        masterMute_l() const;
                 AudioHwDevice* loadHwModule_l(const char *name);

@@ -239,6 +239,7 @@ BINDER_METHOD_ENTRY(isBluetoothVariableLatencyEnabled) \
 BINDER_METHOD_ENTRY(supportsBluetoothVariableLatency) \
 BINDER_METHOD_ENTRY(getSoundDoseInterface) \
 BINDER_METHOD_ENTRY(getAudioPolicyConfig) \
+BINDER_METHOD_ENTRY(setRkAiCallback) \
 
 // singleton for Binder Method Statistics for IAudioFlinger
 static auto& getIAudioFlingerStatistics() {
@@ -320,6 +321,9 @@ AudioFlinger::AudioFlinger()
       mPrimaryHardwareDev(NULL),
       mAudioHwDevs(NULL),
       mHardwareStatus(AUDIO_HW_IDLE),
+//-----------------------rk code----------
+      mRkAiCallback(nullptr),
+//----------------------------------------
       mMasterVolume(1.0f),
       mMasterMute(false),
       // mNextUniqueId(AUDIO_UNIQUE_ID_USE_MAX),
@@ -1657,6 +1661,13 @@ float AudioFlinger::masterVolume_l() const
     return mMasterVolume;
 }
 
+//-----------------------rk code----------
+sp<media::IRkAiCallback> AudioFlinger::rkAiCallback_l() const
+{
+    return mRkAiCallback;
+}
+//----------------------------------------
+
 float AudioFlinger::getMasterBalance_l() const
 {
     return mMasterBalance;
@@ -1799,6 +1810,25 @@ status_t AudioFlinger::getSoundDoseInterface(const sp<media::ISoundDoseCallback>
     *soundDose = mMelReporter->getSoundDoseInterface(callback);
     return NO_ERROR;
 }
+
+//-----------------------rk code----------
+status_t AudioFlinger::setRkAiCallback(const sp<media::IRkAiCallback>& callback) {
+    status_t ret = initCheck();
+    if (ret != NO_ERROR) {
+        return ret;
+    }
+
+    // check calling permissions
+    if (!settingsAllowed()) {
+        return PERMISSION_DENIED;
+    }
+
+    Mutex::Autolock _l(mLock);
+    mRkAiCallback = callback;
+
+    return NO_ERROR;
+}
+//----------------------------------------
 
 status_t AudioFlinger::setStreamMute(audio_stream_type_t stream, bool muted)
 {

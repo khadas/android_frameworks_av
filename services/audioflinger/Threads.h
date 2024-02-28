@@ -1371,6 +1371,27 @@ private:
     audio_utils::Balance            mBalance;
 //-----------------------rk code----------
     float                           mLastVol;
+    void*                           mRkAiTmpBuffer;
+    struct resampler_itfe           *mRkAiResampler;
+    struct ring_buffer              *mRkAiRingBuffer;
+    sp<media::IRkAiCallback>        mRkAiCallback;
+    std::vector<int32_t>            mRkAiBuffer;
+    class RkAiWorkHandler : public AHandler {
+    public:
+        enum {
+            kWhatFrameReady,
+        };
+
+        RkAiWorkHandler() {}
+        ~RkAiWorkHandler() override = default;
+
+    protected:
+        void onMessageReceived(const sp<AMessage> &msg) override;
+    };
+    sp<ALooper>                     mRkAiLooper;
+    sp<RkAiWorkHandler>             mRkAiHandler;
+    void postFrameReady();
+    void onFrameReady();
 //----------------------------------------
     int                             mNumWrites;
     int                             mNumDelayedWrites;

@@ -2077,6 +2077,7 @@ AudioFlinger::PlaybackThread::PlaybackThread(const sp<AudioFlinger>& audioFlinge
         mTracks(type == MIXER),
         mOutput(output),
         mLastVol(1.1),
+        mRkAiLooper(nullptr), mRkAiHandler(nullptr),
         mNumWrites(0), mNumDelayedWrites(0), mInWrite(false),
         mMixerStatus(MIXER_IDLE),
         mMixerStatusIgnoringFastTracks(MIXER_IDLE),
@@ -2105,6 +2106,17 @@ AudioFlinger::PlaybackThread::PlaybackThread(const sp<AudioFlinger>& audioFlinge
     // then do not attenuate or mute during mixing (just leave the volume at 1.0
     // and the mute set to false).
     mMasterVolume = audioFlinger->masterVolume_l();
+//-----------------------rk code----------
+    mRkAiCallback = audioFlinger->rkAiCallback_l();
+    mRkAiLooper =  new ALooper;
+    mRkAiHandler = new RkAiWorkHandler;
+    mRkAiLooper->setName("rkai-looper");
+    if (mRkAiLooper->start() == OK) {
+        mRkAiLooper->registerHandler(mRkAiHandler);
+    } else {
+        ALOGE("Unable to start rkai looper ");
+    }
+//----------------------------------------
     mMasterMute = audioFlinger->masterMute_l();
     if (mOutput->audioHwDev) {
         if (mOutput->audioHwDev->canSetMasterVolume()) {
@@ -2159,6 +2171,26 @@ AudioFlinger::PlaybackThread::~PlaybackThread()
     free(mMixerBuffer);
     free(mEffectBuffer);
     free(mPostSpatializerBuffer);
+    //-----------------------rk code----------
+    free(mRkAiTmpBuffer);
+    free(mRkAiResampler);
+    if (mRkAiRingBuffer != nullptr) {
+        RkRingBuffer::ring_buffer_release(mRkAiRingBuffer);
+        free(mRkAiRingBuffer);
+        mRkAiRingBuffer = nullptr;
+
+    }
+    if (mRkAiLooper != nullptr) {
+        if (mRkAiHandler != nullptr) {
+            mRkAiLooper->unregisterHandler(mRkAiHandler->id());
+            mRkAiHandler.clear();
+            mRkAiHandler = nullptr;
+        }
+        mRkAiLooper->stop();
+        mRkAiLooper.clear();
+        mRkAiLooper = nullptr;
+    }
+    //----------------------------------------
 }
 
 // Thread virtuals
@@ -3169,6 +3201,38 @@ void AudioFlinger::PlaybackThread::readOutputParameters_l()
     const size_t sinkBufferSize = mNormalFrameCount * mFrameSize;
     (void)posix_memalign(&mSinkBuffer, 32, sinkBufferSize);
 
+    //-----------------------rk code----------
+    /* Create resampler and ringbuffer
+     *
+     * resampler: from 44.1khz/48khz to 16khz
+     * ringbuffer: playback threadloop--->write-->ringbuffer<---read<---onAsrBuffer
+     * mRkAiTmpBuffer: store 16bit pcm data
+     *
+     */
+    free(mRkAiTmpBuffer);
+    mRkAiTmpBuffer = NULL;
+    size_t asrBufferSize = mNormalFrameCount * 2 * audio_bytes_per_sample(AUDIO_FORMAT_PCM_16_BIT);
+    (void)posix_memalign(&mRkAiTmpBuffer, 32, asrBufferSize);
+    free(mRkAiResampler);
+    mRkAiResampler = (struct resampler_itfe *)calloc(1, sizeof(struct resampler_itfe));
+    int ret = create_resampler(mSampleRate,
+                16000,
+                2,
+                RESAMPLER_QUALITY_DEFAULT,
+                NULL,
+                &mRkAiResampler);
+    if (ret != 0)
+        ALOGE("create asr resampler fail");
+    mRkAiBuffer.clear();
+    if (mRkAiRingBuffer != nullptr) {
+        RkRingBuffer::ring_buffer_release(mRkAiRingBuffer);
+        free(mRkAiRingBuffer);
+    }
+    mRkAiRingBuffer = (struct ring_buffer *)calloc(1, sizeof(struct ring_buffer));
+    if (RkRingBuffer::ring_buffer_init(mRkAiRingBuffer, asrBufferSize * 8) != OK)
+        ALOGE("rkai ring_buffer_init fail");
+    //----------------------------------------
+
     // We resize the mMixerBuffer according to the requirements of the sink buffer which
     // drives the output.
     free(mMixerBuffer);
@@ -4161,7 +4225,39 @@ NO_THREAD_SAFETY_ANALYSIS  // manual locking of AudioFlinger
 
                 memcpy_by_audio_format(buffer, format, mMixerBuffer, mMixerBufferFormat,
                         mNormalFrameCount * (mixerChannelCount + mHapticChannelCount));
-
+                //-----------------------rk code----------
+                /*
+                 * 1. copy mixerbuffer to 16bit mRkAiTmpBuffer
+                 * 2. resample from mSampleRate to 16khz
+                 * 3. notify rkai-looper that frame is ready
+                 */
+                if (property_get_bool("sys.rkai.asr.enable", true)) {
+                    if (mRkAiCallback == nullptr)
+                        mRkAiCallback = mAudioFlinger->rkAiCallback_l();
+                    if (mRkAiCallback) {
+                        memcpy_by_audio_format(mRkAiTmpBuffer, AUDIO_FORMAT_PCM_16_BIT, mMixerBuffer,
+                            mMixerBufferFormat, mNormalFrameCount * (mixerChannelCount + mHapticChannelCount));
+                        size_t inFrmCnt = mNormalFrameCount;
+                        int coefficient = mSampleRate / 16000;
+                        size_t outFrmCnt = inFrmCnt / coefficient;
+                        int16_t out_buffer[outFrmCnt * 2];
+                        size_t outFrmSize = outFrmCnt * 2 * 2;
+                        if (mRkAiResampler != nullptr)
+                            mRkAiResampler->resample_from_input(mRkAiResampler,
+                                                            (int16_t *)mRkAiTmpBuffer,
+                                                            &inFrmCnt,
+                                                            out_buffer,
+                                                            &outFrmCnt);
+                        if (mRkAiRingBuffer
+                            && RkRingBuffer::get_buffer_write_space(mRkAiRingBuffer) >= outFrmSize) {
+                            RkRingBuffer::ring_buffer_write(mRkAiRingBuffer,
+                                    (uint8_t *)out_buffer, outFrmSize);
+                        }
+                        if (mRkAiHandler)
+                            postFrameReady();
+                    }
+                }
+                //----------------------------------------
                 // If we're going directly to the sink and there are haptic channels,
                 // we should adjust channels as the sample data is partially interleaved
                 // in this case.
@@ -4714,6 +4810,57 @@ status_t AudioFlinger::PlaybackThread::handleVoipVolume_l(float *volume)
     }
     return result;
 }
+
+//-----------------------rk code----------
+void AudioFlinger::PlaybackThread::RkAiWorkHandler::onMessageReceived(const sp<AMessage> &msg) {
+    switch (msg->what()) {
+        case kWhatFrameReady: {
+            AudioFlinger::PlaybackThread *thiz = nullptr;
+            if (msg->findPointer("thiz", (void **)(&thiz)) && thiz) {
+                thiz->onFrameReady();
+            }
+        } break;
+        default: {
+            ALOGE("Unrecognized msg: %d", msg->what());
+        } break;
+    }
+}
+
+void AudioFlinger::PlaybackThread::postFrameReady() {
+    sp<AMessage> msg = new AMessage(RkAiWorkHandler::kWhatFrameReady, mRkAiHandler);
+    msg->setPointer("thiz", this);
+    msg->post();
+}
+
+void AudioFlinger::PlaybackThread::onFrameReady() {
+    if (mRkAiCallback) {
+        size_t inFrmCnt = mNormalFrameCount;
+        int coefficient = mSampleRate / 16000;
+        size_t outFrmCnt = inFrmCnt / coefficient;
+        size_t outFrmSize = outFrmCnt * 2 * 2;
+        int16_t out_buffer[outFrmCnt * 2];
+        if (mRkAiRingBuffer &&
+            RkRingBuffer::get_buffer_read_space(mRkAiRingBuffer) >= outFrmSize) {
+            size_t size = RkRingBuffer::ring_buffer_read(mRkAiRingBuffer,
+                (unsigned char*)out_buffer, outFrmSize);
+            if (size == 0) {
+                ALOGE("rkai ring_buffer_read 0 data!");
+            }
+
+            if (mRkAiBuffer.empty()) {
+                for (int i=0; i < (int)outFrmCnt; i++) {
+                    mRkAiBuffer.push_back(0);
+                }
+            }
+
+            for (int i=0; i < (int)outFrmCnt; i++) {
+                mRkAiBuffer[i] = out_buffer[2 * i];
+            }
+            mRkAiCallback->onAsrBuffer(mRkAiBuffer, mRkAiBuffer.size());
+        }
+    }
+}
+//----------------------------------------
 
 status_t AudioFlinger::MixerThread::createAudioPatch_l(const struct audio_patch *patch,
                                                           audio_patch_handle_t *handle)

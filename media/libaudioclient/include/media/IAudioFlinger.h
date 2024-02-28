@@ -374,6 +374,9 @@ public:
 
     virtual status_t getSoundDoseInterface(const sp<media::ISoundDoseCallback>& callback,
                                            sp<media::ISoundDose>* soundDose) = 0;
+//-----------------------rk code----------
+    virtual status_t setRkAiCallback(const sp<media::IRkAiCallback>& callback) = 0;
+//----------------------------------------
 
     virtual status_t invalidateTracks(const std::vector<audio_port_handle_t>& portIds) = 0;
 
@@ -496,6 +499,9 @@ public:
     status_t supportsBluetoothVariableLatency(bool* support) override;
     status_t getSoundDoseInterface(const sp<media::ISoundDoseCallback>& callback,
                                    sp<media::ISoundDose>* soundDose) override;
+//-----------------------rk code----------
+    status_t setRkAiCallback(const sp<media::IRkAiCallback>& callback) override;
+//----------------------------------------
     status_t invalidateTracks(const std::vector<audio_port_handle_t>& portIds) override;
     status_t getAudioPolicyConfig(media::AudioPolicyConfig* output) override;
 
@@ -599,6 +605,9 @@ public:
             INVALIDATE_TRACKS = media::BnAudioFlingerService::TRANSACTION_invalidateTracks,
             GET_AUDIO_POLICY_CONFIG =
                     media::BnAudioFlingerService::TRANSACTION_getAudioPolicyConfig,
+//-----------------------rk code----------
+            SET_RKAI_AUDIO_CALLBACK = media::BnAudioFlingerService::TRANSACTION_setRkAiCallback,
+//----------------------------------------
         };
 
     protected:
@@ -730,6 +739,9 @@ public:
     Status supportsBluetoothVariableLatency(bool* support) override;
     Status getSoundDoseInterface(const sp<media::ISoundDoseCallback>& callback,
                                  sp<media::ISoundDose>* _aidl_return) override;
+//-----------------------rk code----------
+    Status setRkAiCallback(const sp<media::IRkAiCallback>& callback) override;
+//----------------------------------------
     Status invalidateTracks(const std::vector<int32_t>& portIds) override;
     Status getAudioPolicyConfig(media::AudioPolicyConfig* _aidl_return) override;
 private:

@@ -879,6 +879,12 @@ status_t AudioFlingerClientAdapter::getSoundDoseInterface(
     return statusTFromBinderStatus(mDelegate->getSoundDoseInterface(callback, soundDose));
 }
 
+//-----------------------rk code----------
+status_t AudioFlingerClientAdapter::setRkAiCallback(const sp<media::IRkAiCallback>& callback) {
+    return statusTFromBinderStatus(mDelegate->setRkAiCallback(callback));
+}
+//----------------------------------------
+
 status_t AudioFlingerClientAdapter::invalidateTracks(
         const std::vector<audio_port_handle_t>& portIds) {
     std::vector<int32_t> portIdsAidl = VALUE_OR_RETURN_STATUS(
@@ -1430,6 +1436,12 @@ Status AudioFlingerServerAdapter::getSoundDoseInterface(
 {
     return Status::fromStatusT(mDelegate->getSoundDoseInterface(callback, soundDose));
 }
+
+//-----------------------rk code----------
+Status AudioFlingerServerAdapter::setRkAiCallback(const sp<media::IRkAiCallback>& callback) {
+    return Status::fromStatusT(mDelegate->setRkAiCallback(callback));
+}
+//----------------------------------------
 
 Status AudioFlingerServerAdapter::invalidateTracks(const std::vector<int32_t>& portIds) {
     std::vector<audio_port_handle_t> portIdsLegacy = VALUE_OR_RETURN_BINDER(

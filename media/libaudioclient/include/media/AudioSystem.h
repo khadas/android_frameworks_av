@@ -32,6 +32,7 @@
 #include <android/media/INativeSpatializerCallback.h>
 #include <android/media/ISoundDose.h>
 #include <android/media/ISoundDoseCallback.h>
+#include <android/media/IRkAiCallback.h>
 #include <android/media/ISpatializer.h>
 #include <android/media/MicrophoneInfoFw.h>
 #include <android/media/RecordClientInfo.h>
@@ -615,6 +616,9 @@ public:
     static status_t getSoundDoseInterface(const sp<media::ISoundDoseCallback>& callback,
                                           sp<media::ISoundDose>* soundDose);
 
+//-----------------------rk code----------
+    static status_t setRkAiCallback(const sp<media::IRkAiCallback>& callback);
+//----------------------------------------
     /**
      * Query how the direct playback is currently supported on the device.
      * @param attr audio attributes describing the playback use case

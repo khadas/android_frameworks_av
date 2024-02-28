@@ -189,6 +189,7 @@ cc_library_shared {
         "Threads.cpp",
         "Tracks.cpp",
         "TypedLogger.cpp",
+        "RkRingBuffer.cpp",
     ],
 
     include_dirs: [
@@ -229,6 +230,7 @@ cc_library_shared {
         "libsounddose",
         "libvibrator",
         "packagemanager_aidl-cpp",
+        "libstagefright_foundation",
     ],
 
     static_libs: [

@@ -422,6 +422,7 @@ aidl_interface {
         "aidl/android/media/ISoundDose.aidl",
         "aidl/android/media/ISoundDoseCallback.aidl",
         "aidl/android/media/SoundDoseRecord.aidl",
+        "aidl/android/media/IRkAiCallback.aidl",
     ],
     imports: [
         "android.media.audio.common.types-V2",
