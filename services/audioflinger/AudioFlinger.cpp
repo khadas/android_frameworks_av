@@ -335,7 +335,10 @@ AudioFlinger::AudioFlinger()
       mDeviceEffectManager(sp<DeviceEffectManager>::make(*this)),
       mMelReporter(sp<MelReporter>::make(*this)),
       mSystemReady(false),
-      mBluetoothLatencyModesEnabled(true)
+      mBluetoothLatencyModesEnabled(true),
+      //-----rk-code-----//
+      mCurrentCallingUserid(0)
+      //----------------//
 {
     // Move the audio session unique ID generator start base as time passes to limit risk of
     // generating the same ID again after an audioserver restart.
@@ -568,6 +571,19 @@ AudioFlinger::~AudioFlinger()
             sMediaLogService->unregisterWriter(iMemory);
         }
     }
+    //-----rk-code-----//
+    DefaultKeyedVector<audio_stream_type_t, audio_io_handle_t> *streamItem;
+    while (!mUserDeviceIds.isEmpty()) {
+        int userId = mUserDeviceIds.keyAt(0);
+        streamItem = mUserDeviceIds.valueFor(userId);
+        while (!streamItem->isEmpty()) {
+            audio_stream_type_t steamType = streamItem->keyAt(0);
+            streamItem->removeItem(steamType);
+        }
+        delete streamItem;
+        mUserDeviceIds.removeItem(userId);
+    }
+    //----------------//
 }
 
 //static
@@ -1307,7 +1323,23 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
 
     output.audioTrack = new TrackHandle(track);
     _output = VALUE_OR_FATAL(output.toAidl());
-
+    //-----rk-code-----//
+    {
+        int userId = (int) multiuser_get_user_id(adjAttributionSource.uid);
+        if (userId != 0) {
+            if (mUserDeviceIds.indexOfKey(userId) < 0) {
+                DefaultKeyedVector<audio_stream_type_t, audio_io_handle_t> *streamIoHandle = new DefaultKeyedVector<audio_stream_type_t, audio_io_handle_t>();
+                streamIoHandle->add(streamType, output.outputId);
+                mUserDeviceIds.add(userId, streamIoHandle);
+            } else {
+                mUserDeviceIds.editValueFor(userId)->add(streamType, output.outputId);
+            }
+            mUserPortIds.add(userId, output.selectedDeviceId);
+            ALOGV("%s userId %d, uid %d, stream type %d, outputId %d, selectedDeviceId %d",
+                __func__, userId, adjAttributionSource.uid, streamType, output.outputId, output.selectedDeviceId);
+        }
+    }
+    //---------------//
 Exit:
     if (lStatus != NO_ERROR && output.outputId != AUDIO_IO_HANDLE_NONE) {
         AudioSystem::releaseOutput(portId);
@@ -1673,6 +1705,21 @@ status_t AudioFlinger::setStreamVolume(audio_stream_type_t stream, float value,
     if (volumeInterface == NULL) {
         return BAD_VALUE;
     }
+
+    //-----rk-code-----//
+    audio_io_handle_t useridDevice = AUDIO_IO_HANDLE_NONE;
+    if (mCurrentCallingUserid != 0) {
+        if (mUserDeviceIds.valueFor(mCurrentCallingUserid) != NULL) {
+            useridDevice = mUserDeviceIds.valueFor(mCurrentCallingUserid)->valueFor(stream);
+        }
+    }
+    ALOGV("stream %d, mCurrentCallingUserid: %d, useridDevice: %d, output: %d, value: %f",
+            stream,  mCurrentCallingUserid, useridDevice, output, value);
+    if (useridDevice != AUDIO_IO_HANDLE_NONE && (useridDevice != output)) {
+        return BAD_VALUE;
+    }
+    //----------------//
+
     volumeInterface->setStreamVolume(stream, value);
 
     return NO_ERROR;
@@ -1927,6 +1974,17 @@ status_t AudioFlinger::setParameters(audio_io_handle_t ioHandle, const String8& 
 
     ALOGV("%s: filtered keyvalue %s", __func__, filteredKeyValuePairs.string());
 
+    //-----rk-code-----//
+    String8 curUseridKey;
+    String8 curUseridValue;
+    curUseridKey = "CurrentUserID";
+    AudioParameter userIdParam = AudioParameter(filteredKeyValuePairs);
+    if (userIdParam.get(curUseridKey, curUseridValue) == NO_ERROR) {
+        mCurrentCallingUserid = atoi(curUseridValue.string());
+        ALOGV("current userID: %d", mCurrentCallingUserid);
+        return NO_ERROR;
+    }
+    //----------------//
     // AUDIO_IO_HANDLE_NONE means the parameters are global to the audio hardware interface
     if (ioHandle == AUDIO_IO_HANDLE_NONE) {
         Mutex::Autolock _l(mLock);
@@ -2831,6 +2889,17 @@ status_t AudioFlinger::setAudioPortConfig(const struct audio_port_config *config
         ALOGW("%s() bad hw module %d", __func__, module);
         return BAD_VALUE;
     }
+
+    //-----rk-code-----//
+    audio_port_handle_t portID = AUDIO_PORT_HANDLE_NONE;
+    if (mCurrentCallingUserid != 0) {
+        portID = mUserPortIds.valueFor(mCurrentCallingUserid);
+    }
+
+    if (portID != AUDIO_PORT_HANDLE_NONE && portID != config->id) {
+        return NO_ERROR;
+    }
+    //----------------//
 
     AudioHwDevice *audioHwDevice = mAudioHwDevs.valueAt(index);
     return audioHwDevice->hwDevice()->setAudioPortConfig(config);

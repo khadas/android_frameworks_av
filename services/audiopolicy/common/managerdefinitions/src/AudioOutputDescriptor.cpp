@@ -555,6 +555,9 @@ bool SwAudioOutputDescriptor::setVolume(float volumeDb, bool muted,
             devicePort->toAudioPortConfig(&config);
             config.config_mask = AUDIO_PORT_CONFIG_GAIN;
             config.gain.values[0] = gainValueMb;
+            //-----rk-code-----//
+            config.gain.mode = AUDIO_GAIN_MODE_JOINT;
+            //----------------//
             return mClientInterface->setAudioPortConfig(&config, 0) == NO_ERROR;
         }
     }
