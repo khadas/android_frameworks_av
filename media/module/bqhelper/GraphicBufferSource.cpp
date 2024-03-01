@@ -1178,7 +1178,11 @@ status_t GraphicBufferSource::configure(
             return err;
         }
 
-        consumerUsage |= GRALLOC_USAGE_HW_VIDEO_ENCODER;
+        //consumerUsage |= GRALLOC_USAGE_HW_VIDEO_ENCODER;
+        if (!((consumerUsage & GRALLOC_USAGE_SW_READ_MASK) == GRALLOC_USAGE_SW_READ_OFTEN)) {
+            consumerUsage |= GRALLOC_USAGE_HW_VIDEO_ENCODER;
+        }
+        ALOGE("graphicbuffersource consumerusage:%" PRId64"",consumerUsage);
         mConsumer->setConsumerUsageBits(consumerUsage);
 
         // Set impl. defined format as default. Depending on the usage flags
