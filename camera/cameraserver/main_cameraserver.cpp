@@ -32,7 +32,7 @@ int main(int argc __unused, char** argv __unused)
 
     // Set 5 threads for VNDK AIDL calls. Now cameraserver will serve
     // VNDK AIDL calls in addition to consuming them from the Camera HAL as well.
-    ABinderProcess_setThreadPoolMaxThreadCount(5);
+    ABinderProcess_setThreadPoolMaxThreadCount(8);
 
     sp<ProcessState> proc(ProcessState::self());
     sp<IServiceManager> sm = defaultServiceManager();
