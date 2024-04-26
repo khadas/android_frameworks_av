@@ -1715,7 +1715,8 @@ status_t AudioFlinger::setStreamVolume(audio_stream_type_t stream, float value,
     }
     ALOGV("stream %d, mCurrentCallingUserid: %d, useridDevice: %d, output: %d, value: %f",
             stream,  mCurrentCallingUserid, useridDevice, output, value);
-    if (useridDevice != AUDIO_IO_HANDLE_NONE && (useridDevice != output)) {
+    if (useridDevice != AUDIO_IO_HANDLE_NONE && (useridDevice != output)
+        && (checkMmapThread_l(output) == NULL)) {
         return BAD_VALUE;
     }
     //----------------//

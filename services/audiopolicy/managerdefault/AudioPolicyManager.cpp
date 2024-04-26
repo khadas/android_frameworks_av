@@ -1219,7 +1219,10 @@ status_t AudioPolicyManager::getOutputForAttrInt(
         bool tryDirectForChannelMask = policyDesc != nullptr
                     && (audio_channel_count_from_out_mask(policyDesc->getConfig().channel_mask) <
                         audio_channel_count_from_out_mask(config->channel_mask));
-        if (deviceDesc != nullptr && (tryDirectForFlags || tryDirectForChannelMask)) {
+        //-----rk-code-----//
+        bool tryMMapFlags = *flags & (AUDIO_OUTPUT_FLAG_DIRECT | AUDIO_OUTPUT_FLAG_MMAP_NOIRQ);
+        //-----------------//
+        if (deviceDesc != nullptr && (tryDirectForFlags || tryDirectForChannelMask || tryMMapFlags)) {
             audio_io_handle_t newOutput;
             status = openDirectOutput(
                     *stream, session, config,
