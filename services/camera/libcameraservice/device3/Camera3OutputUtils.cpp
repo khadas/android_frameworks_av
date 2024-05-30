@@ -759,9 +759,15 @@ void processCaptureResult(CaptureOutputStates& states, const camera_capture_resu
         request.pendingOutputBuffers.appendArray(result->output_buffers,
                 result->num_output_buffers);
         if (shutterTimestamp != 0) {
+            std::ostringstream oss;
+            oss << "returnOutputBuffers (camera " << states.cameraId << " frameNubmer " << result->frame_number << ")";
+            const std::string name = oss.str();
+            ATRACE_BEGIN(name.c_str());
+
             returnAndRemovePendingOutputBuffers(
                 states.useHalBufManager, states.listener,
                 request, states.sessionStatsBuilder);
+            ATRACE_END();
         }
 
         if (result->result != NULL && !isPartialResult) {

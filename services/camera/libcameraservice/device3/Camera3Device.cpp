@@ -3957,6 +3957,11 @@ status_t Camera3Device::RequestThread::prepareHalRequests() {
         }
         nsecs_t waitDuration = kBaseGetBufferWait + parent->getExpectedInFlightDuration();
 
+        std::ostringstream oss;
+        oss << "requestOutputBuffers (camera " << mId << " frameNubmer " << halRequest->frame_number << ")";
+        const std::string name = oss.str();
+        ATRACE_BEGIN(name.c_str());
+
         SurfaceMap uniqueSurfaceIdMap;
         for (size_t j = 0; j < captureRequest->mOutputStreams.size(); j++) {
             sp<Camera3OutputStreamInterface> outputStream =
@@ -4054,6 +4059,7 @@ status_t Camera3Device::RequestThread::prepareHalRequests() {
             halRequest->num_output_buffers++;
         }
         totalNumBuffers += halRequest->num_output_buffers;
+        ATRACE_END();
 
         // Log request in the in-flight queue
         // If this request list is for constrained high speed recording (not
