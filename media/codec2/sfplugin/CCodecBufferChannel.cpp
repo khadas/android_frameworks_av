@@ -1738,6 +1738,10 @@ void CCodecBufferChannel::stopUseOutputSurface(bool pushBlankBuffer) {
             Mutexed<BlockPools>::Locked pools(mBlockPools);
             outputPoolId = pools->outputPoolId;
         }
+        if (mTunneled) {
+            sp<ANativeWindow> anw = static_cast<ANativeWindow *>(surface.get());
+            native_window_set_sideband_stream(anw.get(), NULL);
+        }
         if (mComponent) mComponent->stopUsingOutputSurface(outputPoolId);
 
         if (pushBlankBuffer) {
@@ -2019,6 +2023,36 @@ bool CCodecBufferChannel::handleWork(
                 if (firstTunnelFrameHoldRender.value != C2_TRUE) break;
                 ALOGV("[%s] onWorkDone: first tunnel frame ready", mName);
                 mCCodecCallback->onFirstTunnelFrameReady();
+                break;
+            }
+            case C2StreamTunnelStartRender::CORE_INDEX: {
+                C2StreamTunnelStartRender::output hold;
+                if (hold.updateFrom(*param)) {
+                    ALOGD("[%s] update tunned sideband", mName);
+                    std::vector<std::unique_ptr<C2Param>> params;
+                    c2_status_t c2err = mComponent->query({},
+                            {C2PortTunnelHandleTuning::output::PARAM_TYPE}, C2_DONT_BLOCK, &params);
+                    if (c2err == C2_OK && params.size() == 1u) {
+                        C2PortTunnelHandleTuning::output *videoTunnelSideband =
+                            C2PortTunnelHandleTuning::output::From(params[0].get());
+                        // Currently, Codec2 only supports non-fd case for sideband native_handle.
+                        native_handle_t *handle =
+                                native_handle_create(0, videoTunnelSideband->flexCount());
+                        if (handle != nullptr && videoTunnelSideband->flexCount()) {
+                            memcpy(handle->data, videoTunnelSideband->m.values,
+                                    sizeof(int32_t) * videoTunnelSideband->flexCount());
+                            Mutexed<OutputSurface>::Locked output(mOutputSurface);
+                            sp<ANativeWindow> nativeWindow =
+                                    static_cast<ANativeWindow *>(output->surface.get());
+                            status_t err = native_window_set_sideband_stream(
+                                    nativeWindow.get(), handle);
+                            if (err != OK) {
+                                ALOGE("native_window_set_sideband_stream(%p) failed! (err %d).",
+                                      handle, err);
+                            }
+                        }
+                    }
+                }
                 break;
             }
             default:
