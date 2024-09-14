@@ -190,8 +190,15 @@ sp<const AudioPolicyConfig> AudioPolicyConfig::loadFromApmAidlConfigWithFallback
 // static
 sp<const AudioPolicyConfig> AudioPolicyConfig::loadFromApmXmlConfigWithFallback(
         const std::string& xmlFilePath) {
-    const std::string filePath =
-            xmlFilePath.empty() ? audio_get_audio_policy_config_file() : xmlFilePath;
+//-----------------------rk code----------
+    std::string path_single = audio_find_readable_configuration_file(
+                                "audio_policy_configuration_singlehal.xml");
+    std::string path_multi = audio_find_readable_configuration_file(
+                                "audio_policy_configuration_multihal.xml");
+    std::string path_tablet = path_multi.empty() ? path_single : path_multi;
+    const std::string filePath = path_tablet.empty() ?
+            (xmlFilePath.empty() ? audio_get_audio_policy_config_file() : xmlFilePath) : path_tablet;
+//----------------------------------------
     auto config = sp<AudioPolicyConfig>::make();
     if (status_t status = config->loadFromXml(filePath, false /*forVts*/); status == NO_ERROR) {
         return config;
