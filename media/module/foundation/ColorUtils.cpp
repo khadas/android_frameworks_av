@@ -665,6 +665,11 @@ void ColorUtils::getColorConfigFromFormat(
     if (!format->findInt32("color-transfer", transfer)) {
         *transfer = kColorTransferUnspecified;
     }
+	//ALOGI("hlm P3 standard change=%d, kColorStandardDCI_P3=%d, kColorStandardVendorStart=%d", *standard, kColorStandardDCI_P3, kColorStandardVendorStart);
+    if (*standard == kColorStandardDCI_P3 || *standard > kColorStandardVendorStart){
+         ALOGI("unsupport standard change");
+        *standard = kColorStandardUnspecified;
+    }
 }
 
 // static
