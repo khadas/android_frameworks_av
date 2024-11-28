@@ -2337,6 +2337,11 @@ void AudioFlinger::removeClient_l(pid_t pid)
 {
     ALOGV("removeClient_l() pid %d, calling pid %d", pid,
             IPCThreadState::self()->getCallingPid());
+    //-----rk-code-----//
+    if (mCurrentCallingUserid != 0) {
+        mUserPortIds.removeItem(mCurrentCallingUserid);
+    }
+    //-----rk-code-----//
     mClients.removeItem(pid);
 }
 
