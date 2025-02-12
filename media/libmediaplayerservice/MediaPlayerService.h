@@ -38,6 +38,7 @@
 #include <android/content/AttributionSourceState.h>
 
 #include <system/audio.h>
+#include <thread>
 
 namespace android {
 
@@ -275,6 +276,9 @@ public:
     // API for the Battery app to pull the data of codecs usage
     virtual status_t            pullBatteryData(Parcel* reply);
 private:
+    // get MediaCodecList
+    std::thread getCodecListThread;
+
     struct BatteryTracker {
         BatteryTracker();
         // Collect info of the codec usage from media player and media recorder

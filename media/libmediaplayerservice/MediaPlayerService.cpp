@@ -451,10 +451,14 @@ MediaPlayerService::MediaPlayerService()
     mNextConnId = 1;
 
     MediaPlayerFactory::registerBuiltinFactories();
+    getCodecListThread = std::thread(&MediaPlayerService::getCodecList, this);
 }
 
 MediaPlayerService::~MediaPlayerService()
 {
+    if (getCodecListThread.joinable()) {
+        getCodecListThread.join();
+    }
     ALOGV("MediaPlayerService destroyed");
 }
 
