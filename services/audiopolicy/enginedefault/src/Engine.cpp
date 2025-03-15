@@ -27,6 +27,7 @@
 //-----------------------rk code----------
 // open all the devices simultaneously in one hal
 #define OPEN_ALL_DEVICES_SIMULT 0
+#define HDMIIN_SESSION_ID 32761
 //----------------------------------------
 
 #include "Engine.h"
@@ -845,6 +846,12 @@ sp<DeviceDescriptor> Engine::getInputDeviceForAttributes(const audio_attributes_
     const auto &inputs = getApmObserver()->getInputs();
     std::string address;
 
+//-----------------------rk code----------
+    if (session == HDMIIN_SESSION_ID) {
+        return availableInputDevices.getDevice(
+            AUDIO_DEVICE_IN_HDMI, String8(""), AUDIO_FORMAT_DEFAULT);
+    }
+//----------------------------------------
     //
     // Explicit Routing ??? what is the priority of explicit routing? Shall it be considered
     // first as it used to be by APM?

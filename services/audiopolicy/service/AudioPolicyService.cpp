@@ -50,6 +50,10 @@
 #include <AudioPolicyConfig.h>
 #include <AudioPolicyManager.h>
 
+//-----------------------rk code----------
+#define HDMIIN_SESSION_ID 32761
+//----------------------------------------
+
 namespace android {
 using binder::Status;
 
@@ -1141,6 +1145,12 @@ void AudioPolicyService::updateUidStates_l()
                 allowCapture = true;
             }
         }
+//-----------------------rk code----------
+        if (current->session == HDMIIN_SESSION_ID) {
+            ALOGD("allowCapture for hdmiin.");
+            allowCapture =  true;
+        }
+//----------------------------------------
         setAppState_l(current,
                       allowCapture ? apmStatFromAmState(mUidPolicy->getUidState(currentUid)) :
                                 APP_STATE_IDLE);
