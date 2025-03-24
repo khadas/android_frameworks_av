@@ -1385,10 +1385,11 @@ void NuPlayer::Renderer::postDrainVideoQueue() {
     if (!mVideoSampleReceived || mediaTimeUs < mAudioFirstAnchorTimeMediaUs) {
         msg->post();
     } else {
-        int64_t twoVsyncsUs = 2 * (mVideoScheduler->getVsyncPeriod() / 1000);
+        //int64_t twoVsyncsUs = 2 * (mVideoScheduler->getVsyncPeriod() / 1000);
 
         // post 2 display refreshes before rendering is due
-        mMediaClock->addTimer(msg, mediaTimeUs, -twoVsyncsUs);
+        //mMediaClock->addTimer(msg, mediaTimeUs, -twoVsyncsUs);
+	msg->post();
     }
 
     mDrainVideoQueuePending = true;
