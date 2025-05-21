@@ -366,15 +366,22 @@ DeviceVector Engine::getDevicesForStrategyInt(legacy_strategy strategy,
     case STRATEGY_REROUTING:
     case STRATEGY_MEDIA: {
         DeviceVector devices2;
-        if (strategy != STRATEGY_SONIFICATION) {
-            // no sonification on remote submix (e.g. WFD)
-            sp<DeviceDescriptor> remoteSubmix;
-            if ((remoteSubmix = availableOutputDevices.getDevice(
-                    AUDIO_DEVICE_OUT_REMOTE_SUBMIX, String8("0"),
-                    AUDIO_FORMAT_DEFAULT)) != nullptr) {
-                devices2.add(remoteSubmix);
+
+        //-----rk-code-----//
+        /* removable devices are priority */
+        if (getLastRemovableMediaDevices().size() <= 0) {
+            /* no removable devices on remote submix (e.g. BT) */
+            if (strategy != STRATEGY_SONIFICATION) {
+                // no sonification on remote submix (e.g. WFD)
+                sp<DeviceDescriptor> remoteSubmix;
+                if ((remoteSubmix = availableOutputDevices.getDevice(
+                        AUDIO_DEVICE_OUT_REMOTE_SUBMIX, String8("0"),
+                        AUDIO_FORMAT_DEFAULT)) != nullptr) {
+                    devices2.add(remoteSubmix);
+                }
             }
         }
+        //-----------------//
 
         if ((devices2.isEmpty()) &&
             (getForceUse(AUDIO_POLICY_FORCE_FOR_MEDIA) == AUDIO_POLICY_FORCE_SPEAKER)) {

@@ -1206,13 +1206,11 @@ status_t AudioPolicyManager::getOutputForAttrInt(
     }
 
     //-----rk-code-----//
-    if (property_get_bool("bluetooth.profile.a2dp.source.enabled", false)) {
-        audio_io_handle_t outputA2dp = getOutput(*stream);
-        if (outputA2dp != AUDIO_IO_HANDLE_NONE
-            && (outputA2dp == mOutputs.getA2dpOutput())
-            && (primaryMix != nullptr && primaryMix->mDeviceType == AUDIO_DEVICE_OUT_BUS)) {
-            usePrimaryOutputFromPolicyMixes = false;
-        }
+    /* no removable devices on remote submix (e.g. BT) */
+    outputDevices = mEngine->getOutputDevicesForAttributes(*resultAttr, requestedDevice, false);
+    DeviceVector devices = outputDevices.getDevicesFromType(AUDIO_DEVICE_OUT_BLUETOOTH_A2DP);
+    if (!devices.isEmpty()) {
+        usePrimaryOutputFromPolicyMixes = false;
     }
     //-----------------//
 
