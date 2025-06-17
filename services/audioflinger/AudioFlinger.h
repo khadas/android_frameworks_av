@@ -1024,10 +1024,6 @@ using effect_buffer_t = int16_t;
                 // and volume control for activity on the associated MMAP stream at the HAL.
                 // Audio data transfer is directly handled by the client creating the MMAP stream
                 DefaultKeyedVector< audio_io_handle_t, sp<MmapThread> >  mMmapThreads;
-                //-----rk-code-----//
-                DefaultKeyedVector<uid_t, DefaultKeyedVector<audio_stream_type_t, audio_io_handle_t> *> mUserDeviceIds;
-                DefaultKeyedVector<uid_t, audio_port_handle_t> mUserPortIds;
-                //-----------------//
 private:
     sp<Client>  registerPid(pid_t pid);    // always returns non-0
 

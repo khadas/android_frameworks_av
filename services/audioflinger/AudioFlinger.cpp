@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <thread>
+#include <regex>
 
 #include <android-base/stringprintf.h>
 #include <android/media/IAudioPolicyService.h>
@@ -258,6 +259,28 @@ static auto& getIAudioFlingerStatistics() {
 
     return methodStatistics;
 }
+
+//-----rk-code-----//
+int extractUserIdFromAddress(char *address) {
+    static const std::regex addrTagRegex("\\d+");
+
+    std::cmatch match;
+    if (std::regex_search(address, match, addrTagRegex)) {
+        if (stoi(match.str()) >= 0 && stoi(match.str()) < 100)
+            return 10;
+        else if (stoi(match.str()) == 100)
+            return 11;
+        else if (stoi(match.str()) == 200)
+            return 12;
+        else if (stoi(match.str()) == 300)
+            return 13;
+        else
+            return -1;
+    }
+
+    return -1;
+}
+//----------------//
 
 class DevicesFactoryHalCallbackImpl : public DevicesFactoryHalCallback {
   public:
@@ -575,19 +598,6 @@ AudioFlinger::~AudioFlinger()
             sMediaLogService->unregisterWriter(iMemory);
         }
     }
-    //-----rk-code-----//
-    DefaultKeyedVector<audio_stream_type_t, audio_io_handle_t> *streamItem;
-    while (!mUserDeviceIds.isEmpty()) {
-        int userId = mUserDeviceIds.keyAt(0);
-        streamItem = mUserDeviceIds.valueFor(userId);
-        while (!streamItem->isEmpty()) {
-            audio_stream_type_t steamType = streamItem->keyAt(0);
-            streamItem->removeItem(steamType);
-        }
-        delete streamItem;
-        mUserDeviceIds.removeItem(userId);
-    }
-    //----------------//
 }
 
 //static
@@ -1327,23 +1337,6 @@ status_t AudioFlinger::createTrack(const media::CreateTrackRequest& _input,
 
     output.audioTrack = new TrackHandle(track);
     _output = VALUE_OR_FATAL(output.toAidl());
-    //-----rk-code-----//
-    {
-        int userId = (int) multiuser_get_user_id(adjAttributionSource.uid);
-        if (userId != 0) {
-            if (mUserDeviceIds.indexOfKey(userId) < 0) {
-                DefaultKeyedVector<audio_stream_type_t, audio_io_handle_t> *streamIoHandle = new DefaultKeyedVector<audio_stream_type_t, audio_io_handle_t>();
-                streamIoHandle->add(streamType, output.outputId);
-                mUserDeviceIds.add(userId, streamIoHandle);
-            } else {
-                mUserDeviceIds.editValueFor(userId)->add(streamType, output.outputId);
-            }
-            mUserPortIds.add(userId, output.selectedDeviceId);
-            ALOGV("%s userId %d, uid %d, stream type %d, outputId %d, selectedDeviceId %d",
-                __func__, userId, adjAttributionSource.uid, streamType, output.outputId, output.selectedDeviceId);
-        }
-    }
-    //---------------//
 Exit:
     if (lStatus != NO_ERROR && output.outputId != AUDIO_IO_HANDLE_NONE) {
         AudioSystem::releaseOutput(portId);
@@ -1718,17 +1711,28 @@ status_t AudioFlinger::setStreamVolume(audio_stream_type_t stream, float value,
     }
 
     //-----rk-code-----//
-    audio_io_handle_t useridDevice = AUDIO_IO_HANDLE_NONE;
-    if (mCurrentCallingUserid != 0) {
-        if (mUserDeviceIds.valueFor(mCurrentCallingUserid) != NULL) {
-            useridDevice = mUserDeviceIds.valueFor(mCurrentCallingUserid)->valueFor(stream);
+    if (mCurrentCallingUserid >= 10) {
+        PlaybackThread *thread = checkPlaybackThread_l(output);
+        if (!thread)
+            return BAD_VALUE;
+
+        bool skip = true;
+        int multiuserUserid = 0;
+        const AudioDeviceTypeAddrVector& deviceTypeAddrs = thread->outDeviceTypeAddrs();
+        for (const auto & deviceTypeAddr : deviceTypeAddrs) {
+            const std::string& deviceAddress = deviceTypeAddr.address();
+            multiuserUserid = extractUserIdFromAddress((char *)deviceAddress.c_str());
+            if (mCurrentCallingUserid == multiuserUserid) {
+                skip = false;
+            }
         }
-    }
-    ALOGV("stream %d, mCurrentCallingUserid: %d, useridDevice: %d, output: %d, value: %f",
-            stream,  mCurrentCallingUserid, useridDevice, output, value);
-    if (useridDevice != AUDIO_IO_HANDLE_NONE && (useridDevice != output)
-        && (checkMmapThread_l(output) == NULL)) {
-        return BAD_VALUE;
+
+        if (skip) {
+            ALOGI("calling userid(%d) != multi userid(%d), skip this setStreamVolume",
+                    mCurrentCallingUserid, multiuserUserid);
+
+            return BAD_VALUE;
+        }
     }
     //----------------//
 
@@ -2367,11 +2371,6 @@ void AudioFlinger::removeClient_l(pid_t pid)
 {
     ALOGV("removeClient_l() pid %d, calling pid %d", pid,
             IPCThreadState::self()->getCallingPid());
-    //-----rk-code-----//
-    if (mCurrentCallingUserid != 0) {
-        mUserPortIds.removeItem(mCurrentCallingUserid);
-    }
-    //-----rk-code-----//
     mClients.removeItem(pid);
 }
 
@@ -2927,13 +2926,20 @@ status_t AudioFlinger::setAudioPortConfig(const struct audio_port_config *config
     }
 
     //-----rk-code-----//
-    audio_port_handle_t portID = AUDIO_PORT_HANDLE_NONE;
-    if (mCurrentCallingUserid != 0) {
-        portID = mUserPortIds.valueFor(mCurrentCallingUserid);
-    }
-
-    if (portID != AUDIO_PORT_HANDLE_NONE && portID != config->id) {
-        return NO_ERROR;
+    /* multiuser, users can only control the corresponding audio stream */
+    if (mCurrentCallingUserid >= 10) {
+        char value[PROPERTY_VALUE_MAX];
+        if (config->type == AUDIO_PORT_TYPE_DEVICE) {
+            int multiuserUserid = extractUserIdFromAddress((char *)config->ext.device.address);
+                if (mCurrentCallingUserid != multiuserUserid) {
+                    property_get("sys.boot_completed", value, "0");
+                    if (atoi(value)) {
+                        ALOGI("calling userid(%d) != multi userid(%d), address: %s, skip this audioportconfig",
+                                mCurrentCallingUserid, multiuserUserid, config->ext.device.address);
+                        return NO_ERROR;
+                    }
+                }
+        }
     }
     //----------------//
 
