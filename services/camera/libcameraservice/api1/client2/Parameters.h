@@ -202,11 +202,11 @@ struct Parameters {
     // Max preview size allowed
     // This is set to a 1:1 value to allow for any aspect ratio that has
     // a max long side of 1920 pixels
-    static const unsigned int MAX_PREVIEW_WIDTH = 1920;
-    static const unsigned int MAX_PREVIEW_HEIGHT = 1920;
+    static const unsigned int MAX_PREVIEW_WIDTH = 3840;
+    static const unsigned int MAX_PREVIEW_HEIGHT = 2160;
     // Initial max preview/recording size bound
-    static const int MAX_INITIAL_PREVIEW_WIDTH = 1920;
-    static const int MAX_INITIAL_PREVIEW_HEIGHT = 1080;
+    static const int MAX_INITIAL_PREVIEW_WIDTH = 3840;
+    static const int MAX_INITIAL_PREVIEW_HEIGHT = 2160;
     // Aspect ratio tolerance
     static const CONSTEXPR float ASPECT_RATIO_TOLERANCE = 0.01;
     // Threshold for slow jpeg mode
@@ -214,7 +214,7 @@ struct Parameters {
     // Margin for checking FPS
     static const int32_t FPS_MARGIN = 1;
     // Max FPS for default parameters
-    static const int32_t MAX_DEFAULT_FPS = 30;
+    static const int32_t MAX_DEFAULT_FPS = 60;
     // Minimum FPS for a size to be listed in supported preview/video sizes
     // Set to slightly less than 30.0 to have some tolerance margin
     static constexpr double MIN_PREVIEW_RECORD_FPS = 29.97;
