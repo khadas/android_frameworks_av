@@ -52,6 +52,9 @@
 #define PROP_DRC_OVERRIDE_ENC_LEVEL "aac_drc_enc_target_level"
 #define PROP_DRC_OVERRIDE_EFFECT     "ro.aac_drc_effect_type"
 
+// property that indicating whether HE-AAC is enabled
+#define PROP_ENABLE_HE_AAC           "codec2_enable_heaac"
+
 namespace android {
 
 constexpr char COMPONENT_NAME[] = "c2.android.aac.decoder";
@@ -244,6 +247,11 @@ public:
     int32_t getDrcAlbumMode() const { return mDrcAlbumMode->value; }
     u_int32_t getMaxChannelCount() const { return mMaxChannelCount->value; }
     int32_t getDrcOutputLoudness() const { return (mDrcOutputLoudness->value <= 0 ? -mDrcOutputLoudness->value * 4. + 0.5 : -1); }
+    bool isHEAACProfile() const {
+        return (mProfileLevel->profile == PROFILE_AAC_HE ||
+                mProfileLevel->profile == PROFILE_AAC_HE_PS ||
+                mProfileLevel->profile == PROFILE_AAC_XHE);
+    }
 
 private:
     std::shared_ptr<C2StreamSampleRateInfo::output> mSampleRate;
@@ -323,6 +331,12 @@ void C2SoftAacDec::onRelease() {
 status_t C2SoftAacDec::initDecoder() {
     ALOGV("initDecoder()");
     status_t status = UNKNOWN_ERROR;
+
+    if (mIntf->isHEAACProfile() && !property_get_bool(PROP_ENABLE_HE_AAC, false)) {
+        ALOGE("HE-AAC not supported");
+        return status;
+    }
+
     mAACDecoder = aacDecoder_Open(TT_MP4_ADIF, /* num layers */ 1);
     if (mAACDecoder != nullptr) {
         mStreamInfo = aacDecoder_GetStreamInfo(mAACDecoder);
@@ -853,6 +867,19 @@ void C2SoftAacDec::process(
                     output.configUpdate.push_back(C2Param::Copy(channelMaskInfo));
                 } else {
                     ALOGE("Config Update failed");
+                    mSignalledError = true;
+                    work->result = C2_CORRUPTED;
+                    return;
+                }
+            } else {
+                /*
+                 * Determines if the stream is HE-AAC encoded
+                 * HE-AAC (AAC+) uses SBR technology where the output sample rate
+                 * is exactly twice the core AAC sample rate.
+                 */
+                if (mStreamInfo->sampleRate == (2 * mStreamInfo->aacSampleRate)
+                        && !property_get_bool(PROP_ENABLE_HE_AAC, false)) {
+                    ALOGE("HE-AAC not supported");
                     mSignalledError = true;
                     work->result = C2_CORRUPTED;
                     return;
