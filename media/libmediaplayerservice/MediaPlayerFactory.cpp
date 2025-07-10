@@ -40,7 +40,7 @@ Mutex MediaPlayerFactory::sLock;
 MediaPlayerFactory::tFactoryMap MediaPlayerFactory::sFactoryMap;
 bool MediaPlayerFactory::sInitComplete = false;
 
-static status_t getFileName(int fd,String8 *FilePath) {
+static status_t getFileName(int fd, String8 *FilePath) {
     static ssize_t link_dest_size;
     static char link_dest[PATH_MAX];
     const char *ptr = NULL;
@@ -189,8 +189,13 @@ class RockitPlayerFactory : public MediaPlayerFactory::IFactory {
 
 player_type MediaPlayerFactory::getPlayerType(const sp<IMediaPlayer>& client,
                                               const char* url) {
-    if (strstr(url,".ogg")
-        || strstr(url,".apk")) {
+    if (strcasestr(url, ".ogg") ||
+        strcasestr(url, ".mid") ||
+        strcasestr(url, ".mp3") ||
+        strcasestr(url, ".imy") ||
+        strcasestr(url, ".aac") ||
+        strcasestr(url, ".apk") ||
+        strcasestr(url, ".m4a")) {
         return NU_PLAYER;
     }
     GET_PLAYER_TYPE_IMPL(client, url);
